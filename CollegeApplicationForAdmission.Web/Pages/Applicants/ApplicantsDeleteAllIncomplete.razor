@@ -1,0 +1,45 @@
+﻿@inject ISnackbar Snackbar
+@inject IApplicantService ApplicantsConnect
+@inject NavigationManager Navigation
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1">Are you sure you want to remove all this data?</MudText>
+    </DialogContent>
+    <DialogActions>
+        <LoadingButton Loading="loading" Label="Delete" Color="Color.Error" OnClick="Submit"/>
+        <MudButton OnClick="Cancel">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public List<Applicant>? Applicants { get; set; }
+
+    bool loading = false;
+
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+
+        try
+        {
+
+            await ApplicantsConnect.DeleteAllAsync(Applicants);
+
+            Snackbar.Add($"All Incomplete Data Removed", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loading = false;
+    }
+}

@@ -1,0 +1,70 @@
+﻿@* @page "/application/information/{appId}/{schId}" *@
+@using CollegeApplicationForAdmission.Models.Entities
+@using CollegeApplicationForAdmission.Services.RepositoryServices.ApplicantsServices
+@using CollegeApplicationForAdmission.Services.RepositoryServices.SchedulesService
+@inject IScheduleService SchedulesConnect
+@inject IApplicantService ApplicantsConnect
+@inject ISnackbar Snackbar
+
+@if(Model != null)
+{
+    <div class="container">
+        <MudText Class="mb-10" Color="Color.Primary">Take a screenshot of this receipt</MudText>
+        <MudSimpleTable Elevation="0" Class="details mb-10">
+            <tbody>
+                <tr>
+                    <td style="width: 200px;">Applicant Status</td>
+                    <td>@Model.ApplicantStatus</td>
+                </tr>
+                <tr>
+                    <td style="width: 200px;">Fullname</td>
+                    <td>@($"{Model.PersonalInformation.LastName}, {Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0, 1)}.")</td>
+                </tr>
+                <tr>
+                    <td style="width: 200px;">Program Preference</td>
+                    <td>@Model.CourseName</td>
+                </tr>
+                <tr>
+                    <td style="width: 200px;">Campus</td>
+                    <td>@Model.Schedule.Campus.Name</td>
+                </tr>
+                <tr>
+                    <td style="width: 200px;">Schedule Date</td>
+                    <td>@Model.Schedule.ScheduleDate.ToShortDateString()</td>
+                </tr>
+                <tr>
+                    <td style="width: 200px;">Time</td>
+                    <td>@Model.Schedule.Meridiem</td>
+                </tr>
+                <tr>
+                    <td style="width: 200px;">Venue</td>
+                    <td>@Model.Schedule.Venue</td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+    [Parameter]  
+    public Applicant? Model { get; set; }
+
+    void Cancel() => Dialog?.Cancel();
+
+
+}
+<style>
+    .container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    .mb-10 {
+        margin-bottom: 10px; /* Add margin to create space between MudText and MudSimpleTable */
+    }
+</style>

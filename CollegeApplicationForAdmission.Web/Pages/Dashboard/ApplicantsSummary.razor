@@ -1,0 +1,154 @@
+﻿@page "/applicantssummary"
+@attribute [Authorize]
+@inject IApplicantService ApplicantsConnect
+@inject IDepartmentService DepartmentsConnect
+@inject IAuthService AuthConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IJSRuntime JsRuntime
+@using OfficeOpenXml;
+@using System.IO;
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env
+<PageTitle>Applicants | SWDS</PageTitle>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+<MudSimpleTable>
+    <thead>
+        <tr>
+            <td>File</td>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+                <MudButton StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadFile" Variant="Variant.Filled" Color="Color.Success">
+                    <MudText>Download</MudText>
+                </MudButton>
+            </td>
+        </tr>
+    </tbody>
+</MudSimpleTable>
+
+@code {
+
+    bool loading = false;
+    private bool _resizeColumn;
+    IEnumerable<Applicant>? Applicants { get; set; } = new List<Applicant>();
+    IEnumerable<Department>? Departments { get; set; }
+    string? result { get; set; }
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        Departments = await DepartmentsConnect.GetAllAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        if (User.Access != "All")
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => x.Schedule.Campus.Name == User.Access && x.IsCompleted).ToList();
+
+        }
+        else
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => x.IsCompleted).ToList();
+        }
+
+        loading = false;
+    }
+
+    async Task DownloadFile()
+    {
+
+        loading = true;
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        // Check if there are any applicants to export
+        if (Applicants == null || !Applicants.Any())
+        {
+            Snackbar.Add("No data to export.", Severity.Error);
+            return;
+        }
+
+        // Load the existing Excel file as a template
+        var templateFilePath = "ApplicantsSummaryV2.xlsx"; // Update with your template file path
+        var fileInfo = new FileInfo(Path.Combine("wwwroot", templateFilePath));
+
+        if (!fileInfo.Exists)
+        {
+            Snackbar.Add("Template file not found.", Severity.Error);
+            return;
+        }
+
+        // Create a new Excel package from the template file
+        using (var existingPackage = new ExcelPackage(fileInfo))
+        {
+            // Get the worksheet from the existing Excel file
+            var worksheet = existingPackage.Workbook.Worksheets["Sheet1"];
+
+            // Populate data rows starting from row 9 (assuming headers are in row 8)
+            var sortedApplicants = Applicants.OrderBy(x => x.PersonalInformation.LastName);
+            int rowIndex = 5;
+
+            foreach (var applicant in sortedApplicants)
+            {
+                // Populate applicant information into the worksheet
+                worksheet.Cells[rowIndex, 1].Value = $"{applicant.PersonalInformation.LastName}, {applicant.PersonalInformation.FirstName} {applicant.PersonalInformation.MiddleName.Substring(0, 1)}.";
+                worksheet.Cells[rowIndex, 2].Value = $"{applicant.Schedule.Campus.Name}";
+
+                worksheet.Cells[rowIndex, 3].Value = Departments
+                                            .Where(x => x.Courses.Select(x => x.Name).Contains(applicant.CourseName)).Where(xx => xx.Campus.Name == applicant.Schedule.Campus.Name)
+                                            .Select(x => x.Name)
+                                            .FirstOrDefault();
+                worksheet.Cells[rowIndex, 4].Value = $"{applicant.CourseName}";
+                worksheet.Cells[rowIndex, 5].Value = $"{applicant.ApplicantStatus}";
+                worksheet.Cells[rowIndex, 6].Value = $"{applicant.PersonalInformation.ContactNumber}";
+                worksheet.Cells[rowIndex, 7].Value = $"{applicant.EducationalBackground.Track}";
+                worksheet.Cells[rowIndex, 8].Value = $"{applicant.ReadingEquivalent():F2}";
+                worksheet.Cells[rowIndex, 9].Value = $"{applicant.MathEquivalent():F2}";
+                worksheet.Cells[rowIndex, 10].Value = $"{applicant.ScienceEquivalent():F2}";
+                worksheet.Cells[rowIndex, 11].Value = $"{applicant.TotalAchievement():F2}";
+                worksheet.Cells[rowIndex, 12].Value = $"{applicant.IntelligenceEquivalent():F2}";
+                worksheet.Cells[rowIndex, 13].Value = $"{applicant.TotalAchievementIntelligence():F2}";
+                worksheet.Cells[rowIndex, 14].Value = $"{applicant.TotalRating():F2}";
+                worksheet.Cells[rowIndex, 15].Value = $"{applicant.GWA}";
+                worksheet.Cells[rowIndex, 16].Value = $"{applicant.GWAPercentage():F2}";
+                worksheet.Cells[rowIndex, 17].Value = $"{applicant.InterviewReading}";
+                worksheet.Cells[rowIndex, 18].Value = $"{applicant.InterviewCommunication}";
+                worksheet.Cells[rowIndex, 19].Value = $"{applicant.InterviewAnalytical}";
+                worksheet.Cells[rowIndex, 20].Value = $"{applicant.InterViewTotal():F2}";
+                worksheet.Cells[rowIndex, 21].Value = $"{applicant.InterviewRCAPercentage():F2}";
+                worksheet.Cells[rowIndex, 22].Value = $"{applicant.InterviewTotalPercentage():F2}";
+                worksheet.Cells[rowIndex, 23].Value = $"{applicant.OverallTotalRating():F2}";
+                worksheet.Cells[rowIndex, 24].Value = $"{applicant.Remarks()}";
+
+                // Increment row index for the next applicant
+                rowIndex++;
+            }
+
+            // Generate a unique file name for the updated Excel file
+            string fileName = $"ApplicantsSummary{DateTime.Now:yyyy-MM-dd}.xlsx";
+            // Save the updated Excel file to a memory stream
+            var stream = new MemoryStream(existingPackage.GetAsByteArray());
+
+            // Offer the file for download
+            await JsRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, Convert.ToBase64String(stream.ToArray()));
+        }
+        loading = false;
+    }
+}
+
+

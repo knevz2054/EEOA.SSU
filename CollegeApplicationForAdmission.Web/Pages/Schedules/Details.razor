@@ -1,0 +1,101 @@
+﻿@page "/schedules/{Id}"
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IDialogService Dialog
+@inject IScheduleService SchedulesConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject ILogService LogService
+
+<PageTitle>
+    @if (Model != null)
+    {
+        @($"{Model.Campus.Name} {(Model.ScheduleDate.ToShortDateString())} | Details")
+    }
+</PageTitle>
+
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+@if (Model != null)
+{
+    <MudToolBar DisableGutters="true" WrapContent="true">
+        <MudText Typo="Typo.h5">@($"{Model.Campus.Name} ({Model.ScheduleDate.ToShortDateString()})") </MudText>
+        <MudSpacer />
+        <MudButtonGroup Variant="Variant.Outlined">
+            <MudButton Href="/schedules" StartIcon="@Icons.Material.Filled.ChevronLeft" Variant="Variant.Outlined" Size="Size.Small">
+                <MudText Color="Color.Default">Schedules</MudText>
+            </MudButton>
+            @if (Model.Applicants.Count(x => x.IsCompleted) == 0)
+            {
+                <MudButton OnClick="() => OnDeleteClick(Model.Id)" Variant="Variant.Outlined" Color="Color.Error" Class="ms-1" Size="Size.Small">
+                    <MudText Color="Color.Error">Delete</MudText>
+                </MudButton>
+            }
+        </MudButtonGroup>
+
+    </MudToolBar>
+
+    <MudTabs ActivePanelIndex="activeTab"
+             ApplyEffectsToContainer="true" Elevation="1" Rounded="true" PanelClass="pa-6">
+        <MudTabPanel Text="Details">
+            <SchedulesDetails Model="Model"></SchedulesDetails>
+        </MudTabPanel>
+    </MudTabs>    
+
+}
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    Schedule? Model;
+    int activeTab = 0;
+    bool loading = false;
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        Model = Id == null ? null : await SchedulesConnect.GetAsync(Guid.Parse(Id));
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        loading = false;
+    }    
+
+    async Task OnDeleteClick(Guid Id)
+    {
+        Model = await SchedulesConnect.GetAsync(Id);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(SchedulesDelete.Model), Model);
+
+        var dialog = await Dialog.ShowAsync<SchedulesDelete>("Delete Schedule", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (User != null)
+            {
+                Log log = new Log
+                    {
+                        Process = $"Schedule {Model.ScheduleDate.ToShortDateString()} {Model.Meridiem} in {Model.Campus.Name} has been deleted by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogService.CreateAsync(log);
+            }
+        }
+        Navigation.NavigateTo("/schedules");
+    }
+}

@@ -1,0 +1,91 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+<MudDialogProvider MaxWidth="MaxWidth.Small" FullWidth="true" CloseButton="true" CloseOnEscapeKey="true" />
+<PageTitle>CollegeApplicationForAdmission.Web</PageTitle>
+<MudThemeProvider Theme="theme" @bind-IsDarkMode="@_isDarkMode" />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudSpacer />      
+        <MudIconButton @onclick="ToggleDark" Icon="@modeIcon" Color="Color.Inherit" />
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <MudDivider />
+            <AuthorizeView>
+                <Authorized>
+                    <MudMenuItem OnClick="LogoutDialog">Logout</MudMenuItem>
+                </Authorized>
+                <NotAuthorized>
+                    <MudMenuItem Href="/login">Login</MudMenuItem>
+                </NotAuthorized>
+            </AuthorizeView>
+
+        </MudMenu>
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="1">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        @* <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-5 my-md-10">
+            <MudText Style="font-size: 13px; margin-top: 0;" Typo="Typo.h6" Class="text-center">Student Welfare and Development Services</MudText>
+            @Body
+        </MudContainer> *@
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-3 mb-5 mb-md-10">
+            <div class="text-center" style="margin-bottom: 5px">
+                <MudText Style="color: dodgerblue; font-weight: bold; margin-bottom: 5px;" Typo="Typo.h4">Samar State University</MudText>
+                <MudText Style="font-size: 13px" Typo="Typo.h6">Student Welfare and Development Services</MudText>
+            </div>
+            <div style="min-height:65vh">
+                @Body
+            </div>
+        </MudContainer>
+    </MudMainContent>
+    <MudAppBar Color="Color.Primary" Fixed="false" Dense="true" Elevation="4" Style="position:sticky">
+        <MudText Style="font-size: 10px;">Engineered by: Nevhan Zosa (I.S.A. II) &trade; 2024</MudText>
+        <MudSpacer />
+        <MudText Style="font-size: 10px;">SSU - ICT Department</MudText>
+    </MudAppBar>
+</MudLayout>    
+
+@code{
+    MudTheme theme = new MudTheme()
+        {
+            Typography = new Typography()
+            {
+                H1 = new() { FontSize = "3.0rem" },
+                H2 = new() { FontSize = "2.6rem" },
+                H3 = new() { FontSize = "2.2rem" },
+                H4 = new() { FontSize = "1.8rem" },
+                H5 = new() { FontSize = "1.4rem" },
+                H6 = new() { FontSize = "1.0rem" },
+            },
+            PaletteDark = new PaletteDark
+            {
+                HoverOpacity = 0.2
+            }
+        };
+
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+    //Dark Theme Code
+    bool _isDarkMode = false;
+    private string modeIcon => _isDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode;
+    private void ToggleDark() => _isDarkMode = !_isDarkMode;
+
+    [CascadingParameter]
+    Task<AuthenticationState>? AuthenticationState { get; set; }
+    
+    private async Task LogoutDialog()
+    {
+        var customAuthStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
+        await customAuthStateProvider.UpdateAuthenticationState(null);
+        Navigation.NavigateTo("/ssu/swds/login");
+    }
+}

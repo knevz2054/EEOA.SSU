@@ -1,0 +1,172 @@
+﻿@using CollegeApplicationForAdmission.Services.RepositoryServices.ParentGuardianInformationsServices
+@inject ISnackbar Snackbar
+@inject IApplicantService ApplicantsConnect
+@inject IParentGuardianInformationService ParentGuardianConnect
+@inject ILogService LogService
+@inject NavigationManager Navigation
+
+<EditForm Model="Model" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
+    <MudText Color="@Color.Error">@error</MudText>
+    <MudText Typo="Typo.h6">Father</MudText>
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.FatherFirstName" For="@(() => Model.ParentGuardianInformation.FatherFirstName)" Label="Father's First Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.FatherMiddleName" For="@(() => Model.ParentGuardianInformation.FatherMiddleName)" Label="Father's Middle Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.FatherLastName" For="@(() => Model.ParentGuardianInformation.FatherLastName)" Label="Father's Last Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.FatherContactNo" For="@(() => Model.ParentGuardianInformation.FatherContactNo)" Label="Father's Contact No." Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.FatherCitizenship" For="@(() => Model.ParentGuardianInformation.FatherCitizenship)" Label="Father's Citizenship" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.FatherEmail" For="@(() => Model.ParentGuardianInformation.FatherEmail)" Label="Father's Email address" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.FatherOccupation" For="@(() => Model.ParentGuardianInformation.FatherOccupation)" Label="Father's Occupation" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <br />
+    <MudText Typo="Typo.h6">Mother</MudText>
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.MotherFirstName" For="@(() => Model.ParentGuardianInformation.MotherFirstName)" Label="Mother's First Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.MotherMiddleName" For="@(() => Model.ParentGuardianInformation.MotherMiddleName)" Label="Mother's Middle Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.MotherLastName" For="@(() => Model.ParentGuardianInformation.MotherLastName)" Label="Mother's Last Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.MotherContactNo" For="@(() => Model.ParentGuardianInformation.MotherContactNo)" Label="Mother's Contact No." Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.MotherCitizenship" For="@(() => Model.ParentGuardianInformation.MotherCitizenship)" Label="Mother's Citizenship" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.MotherEmail" For="@(() => Model.ParentGuardianInformation.MotherEmail)" Label="Mother's Email address" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.MotherOccupation" For="@(() => Model.ParentGuardianInformation.MotherOccupation)" Label="Mother's Occupation" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <br />
+    <MudText Typo="Typo.h6">Guardian</MudText>
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.GuardianFirstName" For="@(() => Model.ParentGuardianInformation.GuardianFirstName)" Label="Guardian's First Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.GuardianMiddleName" For="@(() => Model.ParentGuardianInformation.GuardianMiddleName)" Label="Guardian's Middle Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.GuardianLastName" For="@(() => Model.ParentGuardianInformation.GuardianLastName)" Label="Guardian's Last Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.GuardianContactNo" For="@(() => Model.ParentGuardianInformation.GuardianContactNo)" Label="Guardian's Contact No." Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.GuardianCitizenship" For="@(() => Model.ParentGuardianInformation.GuardianCitizenship)" Label="Guardian's Citizenship" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.GuardianEmail" For="@(() => Model.ParentGuardianInformation.GuardianEmail)" Label="Guardian's Email address" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="Model.ParentGuardianInformation.GuardianOccupation" For="@(() => Model.ParentGuardianInformation.GuardianOccupation)" Label="Guardian's Occupation" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid> 
+    <div class="d-flex justify-end mt-3">
+        <LoadingButton Loading="loading" Label="Update" Variant="Variant.Filled" />
+    </div>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public EventCallback<Applicant> OnUpdated { get; set; }
+
+    [Parameter]
+    public Applicant? Model { get; set; }
+
+    [Parameter]
+    public User? User { get; set; }
+
+
+    bool loading = false;
+    string error = "";
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if (Model != null)
+            {
+                 var model = await ParentGuardianConnect.UpdateAsync(Model.ParentGuardianInformation);
+
+                if (User != null)
+                {
+                    Log log = new Log
+                        {
+                            Process = $"Applicant: {Model.PersonalInformation.LastName} {Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0, 1)}. parents/guardian's information has been updated by {User.FirstName} {User.LastName}",
+                            Date = DateTime.Now,
+                            UserId = User.Id
+                        };
+                    await LogService.CreateAsync(log);
+                }
+
+                Snackbar.Add($"Update Successful", Severity.Success);
+                Navigation.NavigateTo($"/applicants/{Model.Id}");
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        loading = false;
+    }
+}

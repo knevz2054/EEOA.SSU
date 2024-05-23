@@ -1,0 +1,51 @@
+﻿@inject ISnackbar Snackbar
+@inject ICampusService CampusesConnect
+@inject NavigationManager Navigation
+
+@if (Model != null)
+{
+    <EditForm OnValidSubmit="Submit" Model="Model">
+        <MudDialog>
+            <DialogContent>
+                <MudText Typo="Typo.body1">Are you sure you want to remove @Model.Name ?</MudText>
+            </DialogContent>
+            <DialogActions>
+                <LoadingButton Loading="loading" Label="Delete" Color="Color.Error" />
+                <MudButton OnClick="Cancel">Close</MudButton>
+            </DialogActions>
+        </MudDialog>
+    </EditForm>
+}
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public Campus? Model { get; set; }
+        
+    bool loading = false;
+
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+
+        try
+        {
+            if (Model != null)
+                await CampusesConnect.DeleteAsync(Model.Id);
+
+            Snackbar.Add($"{Model.Name} Removed", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Campus Removed Error: " + ex.Message);
+            Snackbar.Add("Error on Removing Campus", Severity.Error);
+        }
+
+        loading = false;
+    }
+}

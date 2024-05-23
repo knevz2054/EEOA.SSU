@@ -1,0 +1,59 @@
+﻿@inject ISnackbar Snackbar
+@inject ICampusService CampusesConnect
+
+<EditForm OnValidSubmit="Submit" Model="Model">
+    <MudDialog>
+        <DialogContent>
+            <DataAnnotationsValidator />
+            <MudText Color="@Color.Error">@error</MudText>
+            <MudTextField @bind-Value="Model.Name" For="@(() => Model.Name)" Label="Campus Name" Variant="Variant.Outlined"></MudTextField>
+            <MudTextField @bind-Value="Model.Address" For="@(() => Model.Address)" Label="Address" Variant="Variant.Outlined"></MudTextField>
+            <MudSwitch @bind-Value="Model.HasDepartment" For="@(() => Model.HasDepartment)" Label="With Departments" Variant="Variant.Outlined"></MudSwitch>
+        </DialogContent>
+        <DialogActions>
+            <LoadingButton Loading="loading" />
+            <MudButton OnClick="Cancel">Close</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public User User { get; set; }
+
+    Campus Model = new();
+
+    string error { get; set; } = "";
+    private bool loading;
+
+
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            Model.DateCreated = DateTime.Now;
+            Model.CreatedBy = $"{User.FirstName} {User.LastName}";
+            Model.UpdatedBy = $"{User.FirstName} {User.LastName}";
+            Model.DateUpdated = DateTime.Now;
+
+            var model = await CampusesConnect.CreateAsync(Model);
+            Snackbar.Add($"{model.Name} has been added to list.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(model));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loading = false;
+
+    }
+}

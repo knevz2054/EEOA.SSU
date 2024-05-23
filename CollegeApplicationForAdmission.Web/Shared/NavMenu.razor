@@ -1,0 +1,57 @@
+﻿@inject IAuthService AuthConnect
+<MudNavMenu>
+    <AuthorizeView>
+        <div style="display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 1.5rem;">
+            @{
+                var userIdClaim = context.User.FindFirst("Id");
+                if (userIdClaim != null)
+                {
+                    // Parse user Id
+                    var userId = Guid.Parse(userIdClaim.Value);
+                    // Retrieve user asynchronously using UserService
+                    var user = Task.Run(async () => await AuthConnect.GetAsync(userId));
+
+                    <h3>SWDS</h3>
+                    <MudText>@(user.Result.Role == "SuperAdmin" ? "Super Admin" : $"Admin ({user.Result.Access})")</MudText>
+                    <MudAvatar Size="Size.Large" Color="Color.Primary" style="margin-bottom: 0.5rem;">@($"{user.Result.FirstName.Substring(0, 1)}{user.Result.LastName.Substring(0, 1)}")</MudAvatar>
+                    <MudText>@($"{user.Result.FirstName} {user.Result.LastName}")</MudText>
+                }
+            }
+        </div>
+        <MudDivider Class="my-2" />
+        @* <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink> *@
+        <MudNavGroup Title="Summary" Icon="@Icons.Material.Filled.Summarize" Expanded>
+            <MudNavLink Style="font-size: 12px;" Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+            <MudNavLink Style="font-size: 12px;" Href="/applicantssummary" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.ImportExport">Export Data To Excel</MudNavLink>
+            <MudNavLink Style="font-size: 12px;" Href="/rankings" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Class">Rankings</MudNavLink>
+        </MudNavGroup>
+        <MudNavGroup Title="Settings" Icon="@Icons.Material.Filled.SettingsApplications">
+            <AuthorizeView Context="newContext" Roles="SuperAdmin">
+                <MudNavLink Style="font-size: 12px;" Href="/campuses" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Landscape">Campus</MudNavLink>
+                <MudNavLink Style="font-size: 12px;" Href="/departments" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Desk">Department</MudNavLink>
+            </AuthorizeView>
+            <MudNavLink Style="font-size: 12px;" Href="/courses" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Schema">Course</MudNavLink>
+        </MudNavGroup>
+        <MudNavGroup Title="Schedules" Icon="@Icons.Material.Filled.CalendarMonth" Expanded>
+            <MudNavLink Style="font-size: 12px;" Href="/schedules" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Schedule">Schedule</MudNavLink>
+        </MudNavGroup>
+        <MudNavGroup Title="Applicants" Icon="@Icons.Material.Filled.EmojiPeople" Expanded>
+            <MudNavLink Style="font-size: 12px;" Href="/applicants" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PeopleAlt">Completed</MudNavLink>
+            <MudNavLink Style="font-size: 12px;" Href="/applicants-incomplete-application" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.IncompleteCircle">In Progress</MudNavLink>
+        </MudNavGroup>
+    </AuthorizeView>
+    <AuthorizeView Roles="SuperAdmin">
+        <MudNavLink Href="/users" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.People">Users</MudNavLink>
+    </AuthorizeView>
+</MudNavMenu>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

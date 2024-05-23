@@ -1,0 +1,160 @@
+﻿@inject ISnackbar Snackbar
+@inject IPersonalInformationService PersonalInformationsConnect
+@inject IDialogService Dialog
+
+<EditForm Model="PIModel" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
+    <MudText Color="@Color.Error">@error</MudText>
+
+    <MudText Typo="Typo.h5">Personal Information</MudText>
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.FirstName" For="@(() => PIModel.FirstName)" Label="First Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.MiddleName" For="@(() => PIModel.MiddleName)" Label="Middle Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.LastName" For="@(() => PIModel.LastName)" Label="Last Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.NameExtension" For="@(() => PIModel.NameExtension)" Label="NameExtension" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudSelect @bind-Value="PIModel.Sex" For="@(() =>PIModel.Sex)" Label="Sex" Variant="Variant.Text">
+                @foreach (Sex sex in (Sex[])Enum.GetValues(typeof(Sex)))
+                {
+                    <MudSelectItem Value="@(sex.ToFriendlyName().ToString())">@sex.ToFriendlyName()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4">
+            <MudDatePicker Label="Date of Birth" Editable="true" @bind-Date="dateofBirth" Variant="Variant.Text" />
+        </MudItem>      
+
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+       
+        <MudItem xs="12" sm="4" md="4">
+            <MudSelect @bind-Value="PIModel.CivilStatus" For="@(() => PIModel.CivilStatus)" Label="Civil Status" Variant="Variant.Text">
+                @foreach (CivilStatus civil in (CivilStatus[])Enum.GetValues(typeof(CivilStatus)))
+                {
+                    <MudSelectItem Value="@(civil.ToFriendlyName().ToString())">@civil.ToFriendlyName()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.PlaceOfBirth" For="@(() => PIModel.PlaceOfBirth)" Label="Place of Birth" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.Citizenship" For="@(() => PIModel.Citizenship)" Label="Citizenship" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.HouseNo" For="@(() => PIModel.HouseNo)" Label="House No." Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.Street" For="@(() => PIModel.Street)" Label="Street" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.Barangay" For="@(() => PIModel.Barangay)" Label="Barangay" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.Municipality" For="@(() =>PIModel.Municipality)" Label="Municipality" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.Province" For="@(() => PIModel.Province)" Label="Province" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.ZipCode" For="@(() => PIModel.ZipCode)" Label="ZipCode" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.Religion" For="@(() => PIModel.Religion)" Label="Religion" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.Email" For="@(() => PIModel.Email)" Label="Email" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PIModel.ContactNumber" For="@(() => PIModel.ContactNumber)" Label="ContactNumber" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+    <MudGrid>
+        <MudItem xs="12">
+            <LoadingButton Loading="loading" Label="Next" Variant="Variant.Filled" />
+        </MudItem>
+    </MudGrid>
+
+</EditForm>
+
+
+@code {
+    PersonalInformation PIModel = new();
+    [Parameter]
+    public Applicant? Model { get; set; }
+    [Parameter]
+    public Action OnSubmissionSuccess { get; set; }
+    DateTime? dateofBirth = DateTime.Today;
+    bool loading = false;
+    string error = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if (Model != null)
+            {
+                if(dateofBirth == DateTime.Today || dateofBirth > DateTime.Today)
+                {
+                    throw new InvalidOperationException("Please provide a valid birthday.");
+                }
+                if(PIModel.ZipCode == 0)
+                {
+                    throw new InvalidOperationException("Please provide a valid zipcode.");
+                }
+                PIModel.DateofBirth = dateofBirth.Value;
+                PIModel.ApplicantId = Model.Id;
+                var model = await PersonalInformationsConnect.CreateAsync(PIModel);
+            }          
+          
+            Snackbar.Add($"Step 2 completed", Severity.Success);
+            OnSubmissionSuccess?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        loading = false;
+    }
+
+}

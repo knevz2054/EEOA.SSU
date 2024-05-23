@@ -1,0 +1,126 @@
+﻿@page "/{Tab?}"
+@attribute [Authorize]
+@inject IApplicantService ApplicantsConnect
+@inject IScheduleService SchedulesConnect
+@inject NavigationManager Navigation
+
+@if (Applicants != null)
+{
+    <MudContainer Class="mt-16 px-8" MaxWidth="MaxWidth.False">
+        <MudToolBar DisableGutters="true" WrapContent="true">
+            <MudText Color="Color.Dark">Total Applicants: @Applicants.Count()</MudText>
+            <MudSpacer />
+            <MudText Color="Color.Dark">
+                S.Y. @(Schedules.Select(x => x.ScheduleDate.Year).First()
+              + " - " + (Schedules.Select(x => x.ScheduleDate.Year).First() + 1))
+            </MudText>
+
+        </MudToolBar>
+        <MudGrid Spacing="1">
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: 150px; background-color:blue">
+                    <LoadingButton Color="Color.Tertiary" Label="Main Campus" OnClick="@(() => ChangeTab("Main Campus"))" />
+                    <MudText Style="color:white">Applicants: @Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus")</MudText>
+                    <MudText Style="color:white">Percentage: @(Math.Round((double)Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus") / Applicants.Count() * 100, 2))%</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: 150px; background-color: maroon">
+                    <LoadingButton Color="Color.Tertiary" Label="Mercedes Campus" OnClick="@(() => ChangeTab("Mercedes Campus"))" />
+                    <MudText Style="color:white">Applicants: @Applicants.Count(x => x.Schedule.Campus.Name == "Mercedes Campus")</MudText>
+                    <MudText Style="color:white">Percentage: @(Math.Round((double)Applicants.Count(x => x.Schedule.Campus.Name == "Mercedes Campus") / Applicants.Count() * 100, 2))%</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: 150px; background-color: green">
+                    <LoadingButton Color="Color.Tertiary" Label="Paranas Campus" OnClick="@(() => ChangeTab("Paranas Campus"))" />
+                    <MudText Style="color:white">Applicants: @Applicants.Count(x => x.Schedule.Campus.Name == "Paranas Campus")</MudText>
+                    <MudText Style="color:white">Percentage: @(Math.Round((double)Applicants.Count(x => x.Schedule.Campus.Name == "Paranas Campus") / Applicants.Count() * 100, 2))%</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: 150px; background-color: darkblue">
+                    <LoadingButton Color="Color.Tertiary" Label="Basey Campus" OnClick="@(() => ChangeTab("Basey Campus"))" />
+                    <MudText Style="color:white">Applicants: @Applicants.Count(x => x.Schedule.Campus.Name == "Basey Campus")</MudText>
+                    <MudText Style="color:white">Percentage: @(Math.Round((double)Applicants.Count(x => x.Schedule.Campus.Name == "Basey Campus") / Applicants.Count() * 100, 2))%</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+       
+    </MudContainer>
+
+    <MudContainer Class="mt-16 px-8" MaxWidth="MaxWidth.False">
+        <MudTabs MinimumTabWidth="255px" ActivePanelIndex="activeTab" ActivePanelIndexChanged="OnActiveRouteIndexChanged"
+                 ApplyEffectsToContainer="true" Elevation="1" Rounded="true" PanelClass="pa-6">
+            <MudTabPanel Disabled Text="Main Campus" Style="display: none;">
+                <DashboardMain Applicants="Applicants"></DashboardMain>
+            </MudTabPanel>
+            <MudTabPanel Disabled Text="Mercedes Campus" Style="display: none;">
+                <DashboardMercedes Applicants="Applicants"></DashboardMercedes>
+            </MudTabPanel>
+            <MudTabPanel Disabled Text="Paranas Campus" Style="display: none;">
+                <DashboardParanas Applicants="Applicants"></DashboardParanas>
+            </MudTabPanel>
+            <MudTabPanel Disabled Text="Basey Campus" Style="display: none;">
+                <DashboardBasey Applicants="Applicants"></DashboardBasey>
+            </MudTabPanel>
+        </MudTabs>
+    </MudContainer>
+}
+else
+{
+    <p>No data</p>
+}
+
+
+@code {
+    ICollection<Applicant>? Applicants { get; set; }
+    ICollection<Schedule>? Schedules { get; set; }
+
+    Dictionary<string, int> CampusToTabIndexMap = new Dictionary<string, int>
+    {
+        { "Main Campus", 0 },
+        { "Mercedes Campus", 1 },
+        { "Paranas Campus", 2 },
+        { "Basey Campus", 3 }
+    };
+
+    protected async override Task OnInitializedAsync()
+    {      
+        Schedules = await SchedulesConnect.GetAllAsync();
+        var applicants = await ApplicantsConnect.GetAllAsync();
+        Applicants = applicants.Where(x => x.IsCompleted).ToList();
+    }
+
+    [Parameter]
+    public string? Tab { get; set; }
+    int activeTab = 0;
+
+    protected override void OnParametersSet()
+    {
+        activeTab = Tab switch { "dashboard-mercedes" => 1, "dashboard-paranas" => 2, "dashboard-basey" => 3, _ => 0 };
+    }
+
+    void OnActiveRouteIndexChanged(int index)
+    {
+        if (activeTab != index)
+        {
+            activeTab = index;
+            Navigation.NavigateTo(index switch
+            {
+                1 => "/dashboard-mercedes",
+                2 => "/dashboard-paranas",
+                3 => "/dashboard-basey",
+                _ => "/dashboard-main"
+            });
+        }
+    }
+
+    async Task ChangeTab(string campusName)
+    {
+        if (CampusToTabIndexMap.ContainsKey(campusName))
+        {
+            activeTab = CampusToTabIndexMap[campusName];           
+        }        
+    }
+}

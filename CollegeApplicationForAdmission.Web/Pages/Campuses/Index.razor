@@ -1,0 +1,79 @@
+﻿@page "/campuses"
+@attribute [Authorize]
+@inject ICampusService CampusesConnect
+@inject IDialogService Dialog
+@inject IAuthService AuthConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+<PageTitle>Campuses | SWDS</PageTitle>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+<MudToolBar DisableGutters="true" WrapContent="true">
+    <MudSpacer />
+    <MudButton OnClick="OnCampusCreateClick" Variant="Variant.Outlined" Color="Color.Primary" Class="ms-1">Add Campus</MudButton>
+</MudToolBar>
+<MudTable Items="@Campuses" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")">
+    <HeaderContent>
+        <MudTh>Campus Name</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Campus Name">
+            <MudLink Href="@($"/campuses/{context.Id}")"> @context.Name</MudLink>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+    </PagerContent>
+</MudTable>
+
+<MudSwitch @bind-Value="@fixed_header">Fixed Header</MudSwitch>
+
+
+@code {
+    bool fixed_header = true;
+    bool loading = false;
+    IEnumerable<Campus>? Campuses { get; set; } = new List<Campus>();
+
+    ClaimsPrincipal? user { get; set; }    
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        if(User.Access != "All")
+        {
+            var campuses = await CampusesConnect.GetCampusNoApplicant();
+            Campuses = campuses.Where(x => x.Name == User.Access).ToList();
+        }
+        else
+        {
+            Campuses = await CampusesConnect.GetCampusNoApplicant();
+        }
+
+        loading = false;
+    }
+
+    async Task OnCampusCreateClick()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(CampusesCreate.User), User);
+        var dialog = await Dialog.ShowAsync<CampusesCreate>("Add Campus", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            Campuses = await CampusesConnect.GetAllAsync();
+    }
+}

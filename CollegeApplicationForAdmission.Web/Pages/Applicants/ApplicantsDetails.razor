@@ -1,0 +1,311 @@
+﻿@if (Model != null)
+{
+    <MudSimpleTable Elevation="0" Class="details mb-10">
+        <tbody>
+            <tr>
+                <td style="width: 200px;">Date of Application</td>
+                <td>@Model.DateRegistered</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Date of Test</td>
+                <td>@Model.Schedule.ScheduleDate.ToShortDateString()</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Time of Test</td>
+                <td>@Model.Schedule.Meridiem</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Venue</td>
+                <td>@Model.Schedule.Venue</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Student Status</td>
+                <td>@Model.ApplicantStatus</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Campus</td>
+                <td>@Model.Schedule.Campus.Name</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Program Preference</td>
+                <td>@Model.CourseName</td>
+            </tr>
+           
+            <tr>
+                <td style="width: 200px;">First Name</td>
+                <td>@Model.PersonalInformation.FirstName</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Middle Name</td>
+                <td>@Model.PersonalInformation.MiddleName</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Last Name</td>
+                <td>@Model.PersonalInformation.LastName</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Name Extension</td>
+                <td>@Model.PersonalInformation.NameExtension</td>
+            </tr>
+
+            <tr>
+                <td style="width: 200px;">House No.</td>
+                <td>@Model.PersonalInformation.HouseNo</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Street</td>
+                <td>@Model.PersonalInformation.Street</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Barangay</td>
+                <td>@Model.PersonalInformation.Barangay</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">City/Municipality</td>
+                <td>@Model.PersonalInformation.Municipality</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Province</td>
+                <td>@Model.PersonalInformation.Province</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Zip Code</td>
+                <td>@Model.PersonalInformation.ZipCode</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Contact No.</td>
+                <td>@Model.PersonalInformation.ContactNumber</td>
+            </tr>            
+            <tr>
+                <td style="width: 200px;">Sex at Birth</td>
+                <td>@Model.PersonalInformation.Sex</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Civil Status</td>
+                <td>@Model.PersonalInformation.CivilStatus</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Date of Birth</td>
+                <td>@Model.PersonalInformation.DateofBirth.ToShortDateString()</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Place of Birth</td>
+                <td>@Model.PersonalInformation.PlaceOfBirth</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Citizenship</td>
+                <td>@Model.PersonalInformation.Citizenship</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Religion</td>
+                <td>@Model.PersonalInformation.Religion</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Email Address</td>
+                <td>@Model.PersonalInformation.Email</td>
+            </tr>            
+            <tr>
+                <td style="width: 200px;">School Last Attended</td>
+                <td>@Model.EducationalBackground.SchoolLastAttended</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Address of School</td>
+                <td>@Model.EducationalBackground.SchoolAddress</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">School Sector</td>
+                <td>@Model.EducationalBackground.SchoolSector</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Track/Strand/Program/Major</td>
+                <td>@Model.EducationalBackground.Track</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Honors Received</td>
+                <td>@Model.EducationalBackground.Honors</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Date of Graduation</td>
+                <td>@Model.EducationalBackground.YearGraduated</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">LRN</td>
+                <td>@Model.EducationalBackground.LRN</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Father's Firstname</td>
+                <td>@Model.ParentGuardianInformation.FatherFirstName</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Father's Middlename</td>
+                <td>@Model.ParentGuardianInformation.FatherMiddleName</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Father's Lastname</td>
+                <td>@Model.ParentGuardianInformation.FatherLastName</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Father's Contact No.</td>
+                <td>@Model.ParentGuardianInformation.FatherContactNo</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Father's Citizenship</td>
+                <td>@Model.ParentGuardianInformation.FatherCitizenship</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Father's Email Address</td>
+                <td>@Model.ParentGuardianInformation.FatherEmail</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Father's Occupation</td>
+                <td>@Model.ParentGuardianInformation.FatherOccupation</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Mother's Firstname</td>
+                <td>@Model.ParentGuardianInformation.MotherFirstName</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Mother's Middlename</td>
+                <td>@Model.ParentGuardianInformation.MotherMiddleName</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Mother's Lastname</td>
+                <td>@Model.ParentGuardianInformation.MotherLastName</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Mother's Contact No.</td>
+                <td>@Model.ParentGuardianInformation.MotherContactNo</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Mother's Citizenship</td>
+                <td>@Model.ParentGuardianInformation.MotherCitizenship</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Mother's Email Address</td>
+                <td>@Model.ParentGuardianInformation.MotherEmail</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Mother's Occupation</td>
+                <td>@Model.ParentGuardianInformation.MotherOccupation</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Guardian's Firstname</td>
+                <td>@Model.ParentGuardianInformation.GuardianFirstName</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Guardian's Middlename</td>
+                <td>@Model.ParentGuardianInformation.GuardianMiddleName</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Guardian's Lastname</td>
+                <td>@Model.ParentGuardianInformation.GuardianLastName</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Guardian's Contact No.</td>
+                <td>@Model.ParentGuardianInformation.GuardianContactNo</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Guardian's Citizenship</td>
+                <td>@Model.ParentGuardianInformation.GuardianCitizenship</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Guardian's Email Address</td>
+                <td>@Model.ParentGuardianInformation.GuardianEmail</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Guardian's Occupation</td>
+                <td>@Model.ParentGuardianInformation.GuardianOccupation</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Raw Score in Reading</td>
+                <td>@Model.ReadingRawScore</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Interpretation in Reading</td>              
+                <td>@(Model.ReadingRawScore == null ? "" : Model.ReadingRawScore >= 0 && Model.ReadingRawScore <= 31 ? "BA" : Model.ReadingRawScore >= 32 && Model.ReadingRawScore <= 49 ? "A" : "AA")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">% Equivalent in Reading</td>
+                <td>@($"{(Model.ReadingRawScore / 55.0 * 35.0 + 60.0):F2}")</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Raw Score in Math</td>
+                <td>@Model.MathRawScore</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Interpretation in Math</td>
+                <td>@(Model.MathRawScore == null ? "" : Model.MathRawScore >= 0 && Model.MathRawScore <= 26 ? "BA" : Model.MathRawScore >= 27 && Model.MathRawScore <= 39 ? "A" : "AA")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">% Equivalent in Math</td>
+                <td>@($"{(Model.MathRawScore / 50.0 * 35.0 + 60.0):F2}")</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Raw Score in Science</td>
+                <td>@Model.ScienceRawScore</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Interpretation in Science</td>
+                <td>@(Model.ScienceRawScore == null ? "" : Model.ScienceRawScore >= 0 && Model.ScienceRawScore <= 26 ? "BA" : Model.ScienceRawScore >= 27 && Model.ScienceRawScore <= 43 ? "A" : "AA")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">% Equivalent in Science</td>
+                <td>@($"{(Model.ScienceRawScore / 55.0 * 35.0 + 60.0):F2}")</td>
+            </tr>
+             <tr>
+                <td style="width: 200px;">Raw Score in Intelligence Test</td>
+                <td>@Model.IntelligenceRawScore</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Interpretation in Intelligence Test</td>
+                <td>@($"{$"{(Model.IntelligenceRawScore == null ? "" : Model.IntelligenceRawScore >= 0 && Model.IntelligenceRawScore <= 41 ? "Very Low" : Model.IntelligenceRawScore >= 42 && Model.IntelligenceRawScore <= 47 ? "Low" : Model.IntelligenceRawScore >= 48 && Model.IntelligenceRawScore <= 55 ? "BA" : Model.IntelligenceRawScore >= 56 && Model.IntelligenceRawScore <= 64 ? "LA" : Model.IntelligenceRawScore >= 65 && Model.IntelligenceRawScore <= 74 ? "A" : Model.IntelligenceRawScore >= 75 && Model.IntelligenceRawScore <= 82 ? "HA" : Model.IntelligenceRawScore >= 83 && Model.IntelligenceRawScore <= 89 ? "AA" : Model.IntelligenceRawScore >= 90 && Model.IntelligenceRawScore <= 95 ? "H" : "VH")}"}")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">% Equivalent in Intelligence Test</td>
+                <td>@($"{(Model.IntelligenceRawScore / 135.0 * 35.0 + 60.0):F2}")</td>
+            </tr>
+
+            <tr>
+                <td style="width: 200px;">Interview - Reading Comprehension</td>
+                <td>@Model.InterviewReading</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">% Equivalent in Reading Comprehension</td>
+                <td>@($"{(Model.InterviewReading * .10):F2}")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Interview - Communication Ability</td>
+                <td>@Model.InterviewCommunication</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">% Equivalent in Communication Ability</td>
+                <td>@($"{(Model.InterviewCommunication * .10):F2}")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Interview - Analytical Ability</td>
+                <td>@Model.InterviewAnalytical</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">% Equivalent in Analytical Ability</td>
+                <td>@($"{(Model.InterviewAnalytical * .10):F2}")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Control No.</td>
+                <td>@Model.ControlNo</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">GWA</td>
+                <td>@Model.GWA</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Remarks</td>
+                <td>@Model.Remarks()</td>
+            </tr>
+            
+        </tbody>
+    </MudSimpleTable>
+}
+@code {
+    [Parameter]
+    public Applicant? Model { get; set; }
+}

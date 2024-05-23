@@ -1,0 +1,130 @@
+﻿@page "/departments/{Id}/{Tab?}"
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IDialogService Dialog
+@inject IDepartmentService DepartmentsConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject ILogService LogService
+
+<PageTitle>
+    @if (Model != null)
+    {
+        if (Tab != "edit")
+            @($"{Model.Name} | Details")
+        else
+            @($"{Model.Name} | Edit")
+    }
+</PageTitle>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+@if (Model != null)
+{
+    <MudToolBar DisableGutters="true" WrapContent="true">
+        <MudText Typo="Typo.h5">@Model.Name</MudText>
+        <MudSpacer />
+        <MudButtonGroup Variant="Variant.Outlined">
+            <MudButton Href="/departments" StartIcon="@Icons.Material.Filled.ChevronLeft" Variant="Variant.Outlined" Size="Size.Small">
+                <MudText Color="Color.Default">Departments</MudText>
+            </MudButton>           
+            @if (Tab != "edit")
+            {
+                <MudButton OnClick="() => OnDeleteClick(Model.Id)" Variant="Variant.Outlined" Color="Color.Error" Class="ms-1" Size="Size.Small">
+                    <MudText Color="Color.Error">Delete</MudText>
+                </MudButton>
+            }
+        </MudButtonGroup>
+    </MudToolBar>
+    <MudTabs ActivePanelIndex="activeTab" ActivePanelIndexChanged="OnActiveRouteIndexChanged"
+             ApplyEffectsToContainer="true" Elevation="1" Rounded="true" PanelClass="pa-6">
+        <MudTabPanel Text="Details">
+            <DepartmentsDetails Model="Model"></DepartmentsDetails>
+        </MudTabPanel>
+        <MudTabPanel Text="Edit">
+            <DepartmentsUpdate User="User" Model="Model" OnUpdated="OnUpdated"></DepartmentsUpdate>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    [Parameter]
+    public string? Tab { get; set; }
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    Department? Model;
+    int activeTab = 0;
+    bool loading = false;
+
+    ICollection<Department>? Departments { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        Model = Id == null ? null : await DepartmentsConnect.GetAsync(Guid.Parse(Id));
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+        loading = false;
+    }
+
+    protected override void OnParametersSet()
+    {
+        activeTab = Tab switch { "edit" => 1, _ => 0 };
+    }
+
+    void OnActiveRouteIndexChanged(int index)
+    {
+        if (activeTab != index)
+        {
+            activeTab = index;
+            Navigation.NavigateTo(index switch
+            {
+                1 => $"/departments/{Id}/edit",
+                _ => $"/departments/{Id}",
+            });
+        }
+    }
+
+    void OnUpdated(Department model) => Model = model;
+
+    async Task OnDeleteClick(Guid Id)
+    {
+        Model = await DepartmentsConnect.GetAsync(Id);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(DepartmentsDelete.Model), Model);
+
+        var dialog = await Dialog.ShowAsync<DepartmentsDelete>("Delete Department", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (User != null)
+            {
+                Log log = new Log
+                    {
+                        Process = $"{Model.Name} has been deleted by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogService.CreateAsync(log);
+            }
+        }
+        Navigation.NavigateTo("/departments");
+    }
+
+   
+}

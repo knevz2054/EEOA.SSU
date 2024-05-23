@@ -1,0 +1,162 @@
+﻿@inject ISnackbar Snackbar
+@inject IParentGuardianInformationService ParentGuardianInformationsConnect
+@inject IDialogService Dialog
+
+<EditForm Model="PGIModel" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
+    <MudText Color="@Color.Error">@error</MudText>
+    <MudText Typo="Typo.h5">Family Background</MudText>
+    <MudText Typo="Typo.h6">Father</MudText>
+    <MudGrid Spacing="1">
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.FatherFirstName" For="@(() => PGIModel.FatherFirstName)" Label="Father's First Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+          <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.FatherMiddleName" For="@(() => PGIModel.FatherMiddleName)" Label="Father's Middle Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.FatherLastName" For="@(() => PGIModel.FatherLastName)" Label="Father's Last Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.FatherContactNo" For="@(() => PGIModel.FatherContactNo)" Label="Father's Contact No." Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.FatherCitizenship" For="@(() => PGIModel.FatherCitizenship)" Label="Father's Citizenship" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.FatherEmail" For="@(() => PGIModel.FatherEmail)" Label="Father's Email address" Variant="Variant.Text"></MudTextField>
+        </MudItem> 
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="PGIModel.FatherOccupation" For="@(() => PGIModel.FatherOccupation)" Label="Father's Occupation" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <br />
+    <MudText Typo="Typo.h6">Mother</MudText>
+    <MudGrid Spacing="1">
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.MotherFirstName" For="@(() => PGIModel.MotherFirstName)" Label="Mother's First Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.MotherMiddleName" For="@(() => PGIModel.MotherMiddleName)" Label="Mother's Middle Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.MotherLastName" For="@(() => PGIModel.MotherLastName)" Label="Mother's Last Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.MotherContactNo" For="@(() => PGIModel.MotherContactNo)" Label="Mother's Contact No." Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.MotherCitizenship" For="@(() => PGIModel.MotherCitizenship)" Label="Mother's Citizenship" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.MotherEmail" For="@(() => PGIModel.MotherEmail)" Label="Mother's Email address" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="PGIModel.MotherOccupation" For="@(() => PGIModel.MotherOccupation)" Label="Mother's Occupation" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <br />
+    <MudText Typo="Typo.h6">Guardian</MudText>
+    <MudGrid Spacing="1">
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.GuardianFirstName" For="@(() => PGIModel.GuardianFirstName)" Label="Guardian's First Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.GuardianMiddleName" For="@(() => PGIModel.GuardianMiddleName)" Label="Guardian's Middle Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.GuardianLastName" For="@(() => PGIModel.GuardianLastName)" Label="Guardian's Last Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.GuardianContactNo" For="@(() => PGIModel.GuardianContactNo)" Label="Guardian's Contact No." Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.GuardianCitizenship" For="@(() => PGIModel.GuardianCitizenship)" Label="Guardian's Citizenship" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+         <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="PGIModel.GuardianEmail" For="@(() => PGIModel.GuardianEmail)" Label="Guardian's Email address" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="PGIModel.GuardianOccupation" For="@(() => PGIModel.GuardianOccupation)" Label="Guardian's Occupation" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>    
+    <MudGrid>
+        @* <MudItem xs="12">
+            <LoadingButton Loading="loading" Label="Next" Variant="Variant.Filled" />
+        </MudItem> *@
+        <div class="d-flex justify-end mt-3">
+            <LoadingButton Loading="loading" Label="Next" Variant="Variant.Filled" />
+        </div>
+    </MudGrid>
+
+</EditForm>
+
+@code {
+    ParentGuardianInformation PGIModel = new();
+    [Parameter]
+    public Applicant? Model { get; set; }
+    [Parameter]
+    public Action OnSubmissionSuccess { get; set; }
+    bool loading = false;
+    string error = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if (Model != null)
+            {
+                PGIModel.ApplicantId = Model.Id;
+                var model = await ParentGuardianInformationsConnect.CreateAsync(PGIModel);
+            }
+           
+            Snackbar.Add($"Application Submitted", Severity.Success);
+            OnSubmissionSuccess?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        loading = false;
+    }
+}

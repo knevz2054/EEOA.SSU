@@ -1,0 +1,54 @@
+﻿@if (Model != null)
+{
+    <MudSimpleTable Elevation="0" Class="details mb-10">
+        <tbody>
+            <tr>
+                <td style="width: 200px;">Name</td>
+                <td>@Model.Name</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Address</td>
+                <td>@Model.Address</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Has Department</td>
+                <td>@Model.HasDepartment</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Departments</td>
+                <td>
+                    @if (Model.HasDepartment == true)
+                        @(Model.Departments != null ? string.Join(", ", Model.Departments.Select(dep => dep.Name)) : "")
+                    else
+                        @($"{Model.Name} has no department")
+
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Courses</td>
+                <td> @(Model.Courses != null ? string.Join(", ", Model.Courses.Select(c => c.Name)) : "")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Created By</td>
+                <td>@Model.CreatedBy</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Created Date</td>
+                <td>@Model.DateCreated</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Updated By</td>
+                <td>@Model.UpdatedBy</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Updated Date</td>
+                <td>@Model.DateUpdated</td>
+            </tr>
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter]
+    public Campus? Model { get; set; }
+}

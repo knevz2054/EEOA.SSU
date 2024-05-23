@@ -1,0 +1,85 @@
+﻿@using CollegeApplicationForAdmission.Services.RepositoryServices.TransfersServices
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject IApplicantService ApplicantsConnect
+@inject ITransferService TransfersConnect
+@inject NavigationManager Navigation
+
+@if (Model != null)
+{     
+
+    <EditForm OnValidSubmit="Submit" Model="Model">
+        <MudDialog>
+            <DialogContent>
+                <DataAnnotationsValidator />
+                <MudText>Schedule: @($"{Schedule.ScheduleDate.ToString("MMMM dd, yyyy (dddd)")} {(Schedule.Meridiem)}")</MudText>
+                <MudSelect @bind-Value="course" Label="Program Preference" Variant="Variant.Text">
+                    @foreach (var course in Schedule.Campus.Courses)
+                    {
+                        <MudSelectItem Value="@(course.Name)">@course.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </DialogContent>
+            <DialogActions>
+                <LoadingButton Loading="loading" Label="Update"/>
+                <MudButton OnClick="Cancel">Close</MudButton>
+            </DialogActions>
+        </MudDialog>
+    </EditForm>
+}
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public Applicant? Model { get; set; }
+
+    [Parameter]
+    public Schedule? Schedule { get; set; }
+
+    [Parameter]
+    public User User { get; set; }
+
+    [Parameter]
+    public string FromCampus { get; set; }
+
+    [Parameter]
+    public string FromProgram { get; set; }
+    string error { get; set; } = "";
+    private bool loading;
+
+    string course;
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            Model.ScheduleId = Schedule.Id;
+            if (course == null)
+            {
+                throw new InvalidOperationException($"Select Program Preference");
+            }
+            Model.CourseName = course;
+
+            await ApplicantsConnect.UpdateAsync(Model);
+            await TransfersConnect.CreateAsync(Model.Id, User, FromCampus, FromProgram, Model.Schedule.Campus.Name, Model.CourseName);           
+
+            Snackbar.Add("Transfer Successful.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(Model));
+          
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loading = false;
+
+    }
+}

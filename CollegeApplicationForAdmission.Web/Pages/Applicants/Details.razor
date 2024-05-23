@@ -1,0 +1,498 @@
+﻿@page "/applicants/{Id}/{Tab?}"
+@using System.Diagnostics
+@using Xceed.Words.NET
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+@inject IApplicantService ApplicantsConnect
+@inject IScheduleService SchedulesConnect
+@inject IDepartmentService DepartmentsConnect
+@inject IWebHostEnvironment Environment
+@inject NavigationManager Navigation
+@inject IDialogService Dialog
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject ILogService LogService
+
+<PageTitle>
+    @if (Model != null)
+    {
+        @($"{Model.PersonalInformation.LastName}, {Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0, 1)}. | Details")
+    }
+</PageTitle>
+
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+@if (Model != null)
+{
+    <MudToolBar DisableGutters="true" WrapContent="true">
+        <MudText Typo="Typo.h5">@($"{Model.PersonalInformation.LastName}, {Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0, 1)}.") </MudText>
+        <MudSpacer />
+        <MudButtonGroup Variant="Variant.Outlined">
+            <MudButton Href="/schedules" StartIcon="@Icons.Material.Filled.ChevronLeft" Variant="Variant.Outlined" Size="Size.Small">
+                <MudText Color="Color.Default">Schedules</MudText>
+            </MudButton>
+            @if (activeTab == 0)
+            {
+                <MudButton OnClick="() => OnDeleteClick(Model.Id, Model.ScheduleId)" StartIcon="@Icons.Material.Filled.Delete" Variant="Variant.Outlined" Color="Color.Error" Class="ms-1" Size="Size.Small">
+                    <MudText Color="Color.Error">Delete</MudText>
+                </MudButton>
+                <MudButton OnClick="DownloadFile" StartIcon="@Icons.Material.Filled.Download" Variant="Variant.Outlined" Color="Color.Error" Class="ms-1" Size="Size.Small">
+                    <MudText Color="Color.Primary">Download File</MudText>
+                </MudButton>
+                if(Model.Remarks() == "Passed")
+                {
+                    if(Model.ApplicantStatus == "Returnee")
+                    {
+                        <MudButton OnClick="DownloadReAdmissionSlip" StartIcon="@Icons.Material.Filled.Download" Variant="Variant.Outlined" Color="Color.Error" Class="ms-1" Size="Size.Small">
+                            <MudText Color="Color.Primary">Download Re-Admission Slip</MudText>
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton OnClick="DownloadResultSlip" StartIcon="@Icons.Material.Filled.Download" Variant="Variant.Outlined" Color="Color.Error" Class="ms-1" Size="Size.Small">
+                            <MudText Color="Color.Primary">Download Result Slip</MudText>
+                        </MudButton>
+                    }
+                }
+            }
+        </MudButtonGroup>
+    </MudToolBar>
+
+    <MudTabs ActivePanelIndex="activeTab" ActivePanelIndexChanged="OnActiveRouteIndexChanged"
+             ApplyEffectsToContainer="true" Elevation="1" Rounded="true" PanelClass="pa-6">
+        <MudTabPanel Style="font-size: 10px;" Text="Details">
+            <ApplicantsDetails Model="Model"></ApplicantsDetails>
+        </MudTabPanel>
+        <MudTabPanel Style="font-size: 10px;" Text="Control #/GWA">
+            <ApplicantsControlNumberGWAUpdate User="User" Model="Model" OnUpdated="OnUpdated"></ApplicantsControlNumberGWAUpdate>
+        </MudTabPanel>
+        <MudTabPanel Style="font-size: 10px;" Text="Transfer Application">
+            <ApplicantsTransferApplication User="User" Model="Model" OnUpdated="OnUpdated"></ApplicantsTransferApplication>
+        </MudTabPanel>
+        <MudTabPanel Style="font-size: 10px;" Text="Personal Information">
+            <ApplicantsPersonalInformationsUpdate User="User" Model="Model" OnUpdated="OnUpdated"></ApplicantsPersonalInformationsUpdate>
+        </MudTabPanel>
+        <MudTabPanel Style="font-size: 10px;" Text="Academic Background">
+            <ApplicantsEducationalBackgroundsUpdate User="User" Model="Model" OnUpdated="OnUpdated"></ApplicantsEducationalBackgroundsUpdate>
+        </MudTabPanel>
+        <MudTabPanel Style="font-size: 10px;" Text="Parent/Guardian Information">
+            <ApplicantsParentsGuardiansInformationUpdate User="User" Model="Model" OnUpdated="OnUpdated"></ApplicantsParentsGuardiansInformationUpdate>
+        </MudTabPanel>
+        @if(Model.IsExamined == true)
+        {
+            <MudTabPanel Style="font-size: 10px;" Text="Exam Result">
+                <ApplicantsExaminationUpdate User="User" Model="Model" OnUpdated="OnUpdated"></ApplicantsExaminationUpdate>
+            </MudTabPanel>
+        }
+        @if(Model.IsInterviewed == true)
+        {
+            <MudTabPanel Style="font-size: 10px;" Text="Interview Result">
+                <ApplicantsInterviewUpdate User="User" Model="Model" OnUpdated="OnUpdated"></ApplicantsInterviewUpdate>
+            </MudTabPanel>
+        }        
+    </MudTabs>
+
+}
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+    [Parameter]
+    public string? Tab { get; set; }
+    Applicant? Model;
+    int activeTab = 0;
+    bool loading = false;
+    Schedule? Schedule { get; set; }
+    ICollection<Applicant>? Applicants { get; set; }
+    ICollection<Schedule>? Schedules { get; set; }
+    ICollection<Department>? Departments { get; set; }
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        Model = Id == null ? null : await ApplicantsConnect.GetAsync(Guid.Parse(Id));
+        Applicants = await ApplicantsConnect.GetAllAsync();
+        Schedules = await SchedulesConnect.GetAllAsync();
+        Departments = await DepartmentsConnect.GetAllAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        loading = false;
+    }
+
+    async Task DownloadFile()
+    {
+        Model = Id == null ? null : await ApplicantsConnect.GetAsync(Guid.Parse(Id));
+        string fileName = "ApplicantData.docx"; // File name
+        string filePath = Path.Combine(Environment.WebRootPath, fileName);
+
+        if (!File.Exists(filePath))
+        {
+            Snackbar.Add($"File '{fileName}' not found.", Severity.Error);
+            return;
+        }
+
+        if (IsFileOpen(filePath))
+        {
+            Snackbar.Add($"Close the open document first before viewing a new one.", Severity.Error);
+            return;
+        }
+
+        if (Model != null)
+        {
+            Dictionary<string, string> bookmarksData = new Dictionary<string, string>()
+            {
+                { "AppFirstName", $"{(Model.PersonalInformation.NameExtension != null ? Model.PersonalInformation.FirstName + " " + Model.PersonalInformation.NameExtension : Model.PersonalInformation.FirstName)}" },
+                { "AppLastName", $"{Model.PersonalInformation.LastName}" },
+                { "AppMiddleName", $"{Model.PersonalInformation.MiddleName}" },
+                { "Barangay", $"{Model.PersonalInformation.Barangay}" },
+                { "Citizenship", $"{Model.PersonalInformation.Citizenship}" },
+                { "CivilStatus", $"{Model.PersonalInformation.CivilStatus}" },
+                { "ContactNo", $"{Model.PersonalInformation.ContactNumber}" },
+                { "ControlNo", $"{Model.ControlNo}" },
+                { "DateOfApplication", $"{Model.DateRegistered.ToShortDateString()}" },
+                { "Time", $"{Model.Schedule.Meridiem}" },
+                { "DateOfBirth", $"{Model.PersonalInformation.DateofBirth.ToShortDateString()}" },
+                { "DateOfGraduation", $"{Model.EducationalBackground.YearGraduated}" },
+                { "DateOfTest", $"{Model.Schedule.ScheduleDate.ToShortDateString()}" },
+                { "Email", $"{Model.PersonalInformation.Email}" },
+                { "FatherCitizenship", $"{Model.ParentGuardianInformation.FatherCitizenship}" },
+                { "FatherContact", $"{Model.ParentGuardianInformation.FatherContactNo}" },
+                { "FatherEmail", $"{Model.ParentGuardianInformation.FatherEmail}" },
+                { "FatherFirstName", $"{Model.ParentGuardianInformation.FatherFirstName}" },
+                { "FatherLastName", $"{Model.ParentGuardianInformation.FatherLastName}" },
+                { "FatherMiddleName", $"{Model.ParentGuardianInformation.FatherMiddleName}" },
+                { "FatherOccupation", $"{Model.ParentGuardianInformation.FatherOccupation}" },
+                { "GuardianCitizenship", $"{Model.ParentGuardianInformation.GuardianCitizenship}" },
+                { "GuardianContact", $"{Model.ParentGuardianInformation.GuardianContactNo}" },
+                { "GuardianEmail", $"{Model.ParentGuardianInformation.GuardianEmail}" },
+                { "GuardianFirstName", $"{Model.ParentGuardianInformation.GuardianFirstName}" },
+                { "GuardianLastName", $"{Model.ParentGuardianInformation.GuardianLastName}" },
+                { "GuardianMiddleName", $"{Model.ParentGuardianInformation.GuardianMiddleName}" },
+                { "GuardianOccupation", $"{Model.ParentGuardianInformation.GuardianOccupation}" },
+                { "Honor", $"{Model.EducationalBackground.Honors}" },
+                { "HouseNo", $"{Model.PersonalInformation.HouseNo}" },               
+                { "LRN", $"{Model.EducationalBackground.LRN}" },               
+                { "MotherCitizenship", $"{Model.ParentGuardianInformation.MotherCitizenship}" },
+                { "MotherContact", $"{Model.ParentGuardianInformation.MotherContactNo}" },
+                { "MotherEmail", $"{Model.ParentGuardianInformation.MotherEmail}" },
+                { "MotherFirstName", $"{Model.ParentGuardianInformation.MotherFirstName}" },
+                { "MotherLastName", $"{Model.ParentGuardianInformation.MotherLastName}" },
+                { "MotherMiddleName", $"{Model.ParentGuardianInformation.MotherMiddleName}" },
+                { "MotherOccupation", $"{Model.ParentGuardianInformation.MotherOccupation}" },
+                { "Municipality", $"{Model.PersonalInformation.Municipality}" },
+                { "PlaceOfBirth", $"{Model.PersonalInformation.PlaceOfBirth}" },
+                { "ProgramPreference", $"{Model.CourseName}" },
+                { "Province", $"{Model.PersonalInformation.Province}" },               
+                { "Religion", $"{Model.PersonalInformation.Religion}" },
+                { "School", $"{Model.EducationalBackground.SchoolLastAttended}" },
+                { "SchoolAddress", $"{Model.EducationalBackground.SchoolAddress}" },               
+                { "Sex", $"{Model.PersonalInformation.Sex}" },
+                { "Street", $"{Model.PersonalInformation.Street}" },
+                { "Track", $"{Model.EducationalBackground.Track}" },
+                { "Venue", $"{Model.Schedule.Venue}" },
+                { "ZipCode", $"{Model.PersonalInformation.ZipCode}" },
+                { "New", $"{(Model.ApplicantStatus == "New" ? "[X]" : "[  ]")}" },
+                { "Shifter", $"{(Model.ApplicantStatus == "Shifter" ? "[X]" : "[  ]")}" },
+                { "SecondCourser", $"{(Model.ApplicantStatus == "Second Courser" ? "[X]" : "[  ]")}" },
+                { "Transferee", $"{(Model.ApplicantStatus == "Transferee" ? "[X]" : "[  ]")}" },
+                { "Returnee", $"{(Model.ApplicantStatus == "Returnee" ? "[X]" : "[  ]")}" },
+                { "Government", $"{(Model.EducationalBackground.SchoolSector == "Government" ? "[X]" : "[  ]")}" },
+                { "Private", $"{(Model.EducationalBackground.SchoolSector == "Private" ? "[X]" : "[  ]")}" },
+                { "MainCampus", $"{(Model.Schedule.Campus.Name == "Main Campus" ? "[X]" : "[  ]")}" },
+                { "MercedesCampus", $"{(Model.Schedule.Campus.Name == "Mercedes Campus" ? "[X]" : "[  ]")}" },
+                { "ParanasCampus", $"{(Model.Schedule.Campus.Name == "Paranas Campus" ? "[X]" : "[  ]")}" },
+                { "BaseyCampus", $"{(Model.Schedule.Campus.Name == "BaseyCampus" ? "[X]" : "[  ]")}" },
+                { "ReadingRaw", $"{Model.ReadingRawScore}" },
+                { "ReadingEquivalent", $"{Model.ReadingEquivalent():F2}" },
+                { "ReadingInterpretation", $"{Model.ReadingInterpretation()}" },
+                { "MathRaw", $"{Model.MathRawScore}" },
+                { "MathEquivalent", $"{Model.MathEquivalent():F2}" },
+                { "MathInterpretation", $"{Model.MathInterpretation()}" },
+                { "ScienceRaw", $"{Model.ScienceRawScore}" },
+                { "ScienceEquivalent", $"{Model.ScienceEquivalent():F2}" },
+                { "ScienceInterpretation", $"{Model.ScienceInterpretation()}" },               
+                { "IntelligenceRaw", $"{Model.IntelligenceRawScore}" },
+                { "IntelligenceEquivalent", $"{Model.IntelligenceEquivalent():F2}" },               
+                { "IntelligenceInterpretation", $"{Model.IntelligenceInterpretation()}" },
+                { "TotalAchievement", $"{Model.TotalAchievement():F2}" },
+                { "TotalAchievementIntelligence", $"{Model.TotalAchievementIntelligence():F2}" },
+                { "TotalRating", $"{Model.TotalRating():F2}" },   
+                { "GWA", $"{Model.GWA}" },
+                { "GWAPercentage", $"{Model.GWAPercentage():F2}" },
+                { "InterviewReading", $"{Model.InterviewReading}" },
+                { "InterviewReadingPercentage", $"{Model.InterviewReadingPercentage():F2}" },
+                { "InterviewCommunication", $"{Model.InterviewCommunication}" },
+                { "InterviewCommunicationPercentage", $"{Model.InterviewCommunicationPercentage():F2}" },
+                { "InterviewAnalytical", $"{Model.InterviewAnalytical}" },
+                { "InterviewAnalyticalPercentage", $"{Model.InterviewAnalyticalPercentage():F2}" },
+                { "InterviewRCAPercentage", $"{Model.InterviewRCAPercentage():F2}" },
+                { "InterviewTotalPercentage", $"{Model.InterviewTotalPercentage():F2}" },
+                { "ExamTotalRating", $"{Model.ExamTotalRating():F2}" },
+                { "InterviewTotalRating", $"{Model.InterviewTotalRating():F2}" },
+                { "OverallTotalRating", $"{Model.OverallTotalRating():F2}" },
+                { "Remarks", $"{Model.Remarks()}" },
+                // Add more bookmarks and data as needed
+            };
+
+            using (var document = DocX.Load(filePath))
+            {
+
+                foreach (var bookmarkData in bookmarksData)
+                {
+                    string bookmarkName = bookmarkData.Key;
+                    string newData = bookmarkData.Value;
+
+                    var bookmark = document.Bookmarks[bookmarkName];
+
+                    if (bookmark != null)
+                    {
+                        // Clear the existing text in the paragraph
+                        bookmark.Paragraph.RemoveText(0, bookmark.Paragraph.Text.Length);
+
+                        // Insert the new data
+                        bookmark.Paragraph.InsertText(newData);
+                        bookmark.Paragraph.Font("Arial").FontSize(8);
+                    }
+                }
+
+                document.Save();
+            }
+            // Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+            // Navigate.NavigateTo($"/download/{fileName}");
+            Navigation.NavigateTo($"/download/{fileName}?applicantName={Model.CourseName} ({Model.PersonalInformation.LastName}, {Model.PersonalInformation.FirstName})");
+        }
+
+    }
+
+    private bool IsFileOpen(string filePath)
+    {
+        try
+        {
+            using (FileStream stream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                stream.Close();
+            }
+        }
+        catch (IOException)
+        {
+            // The file is open by another process
+            return true;
+        }
+
+        // The file is not open
+        return false;
+    }
+
+
+    async Task DownloadResultSlip()
+    {
+        Model = Id == null ? null : await ApplicantsConnect.GetAsync(Guid.Parse(Id));
+        string fileName = "ResultSlip.docx"; // File name
+        string filePath = Path.Combine(Environment.WebRootPath, fileName);
+
+        if (!File.Exists(filePath))
+        {
+            Snackbar.Add($"File '{fileName}' not found.", Severity.Error);
+            return;
+        }
+
+        if (IsFileOpen(filePath))
+        {
+            Snackbar.Add($"Close the open document first before viewing a new one.", Severity.Error);
+            return;
+        }
+
+        if (Model != null)
+        {
+            Dictionary<string, string> bookmarksSlip = new Dictionary<string, string>()
+            {
+                { "Name", $"{Model.PersonalInformation.LastName.ToUpper()}, {Model.PersonalInformation.FirstName.ToUpper()} {Model.PersonalInformation.MiddleName.Substring(0,1).ToUpper()}." },
+                { "Date", $"{DateTime.Now.ToShortDateString()}" },
+                { "Program", $"{Model.CourseName}" },
+                { "Department", $"{Departments.Where(x => x.Courses.Select(x => x.Name).Contains(Model.CourseName)).Where(xx => xx.Campus.Name == Model.Schedule.Campus.Name).Select(x => x.Name).FirstOrDefault()}." },
+                { "Campus", $"{Model.Schedule.Campus.Name}" },
+                { "Track", $"{Model.EducationalBackground.Track}" },
+                { "LRN", $"{Model.EducationalBackground.LRN}" },
+                { "NameCopy", $"{Model.PersonalInformation.LastName.ToUpper()}, {Model.PersonalInformation.FirstName.ToUpper()} {Model.PersonalInformation.MiddleName.Substring(0,1).ToUpper()}." },
+                { "DateCopy", $"{DateTime.Now.ToShortDateString()}" },
+                { "ProgramCopy", $"{Model.CourseName}" },
+                { "DepartmentCopy", $"{Departments.Where(x => x.Courses.Select(x => x.Name).Contains(Model.CourseName)).Where(xx => xx.Campus.Name == Model.Schedule.Campus.Name).Select(x => x.Name).FirstOrDefault()}" },
+                { "CampusCopy", $"{Model.Schedule.Campus.Name}" },
+                { "TrackCopy", $"{Model.EducationalBackground.Track}" },
+                { "LRNCopy", $"{Model.EducationalBackground.LRN}" }
+                // Add more bookmarks and data as needed
+            };
+
+            using (var document = DocX.Load(filePath))
+            {
+
+                foreach (var bookmarkSlip in bookmarksSlip)
+                {
+                    string bookmarkName = bookmarkSlip.Key;
+                    string newData = bookmarkSlip.Value;
+
+                    var bookmark = document.Bookmarks[bookmarkName];
+
+                    if (bookmark != null)
+                    {
+                        // Clear the existing text in the paragraph
+                        bookmark.Paragraph.RemoveText(0, bookmark.Paragraph.Text.Length);
+
+                        // Insert the new data
+                        bookmark.Paragraph.InsertText(newData);
+                        bookmark.Paragraph.Font("Arial").FontSize(11);
+                    }
+                }
+
+                document.Save();
+            }            
+            Navigation.NavigateTo($"/downloadresultslip/{fileName}?applicantName=Result Slip ({Model.PersonalInformation.LastName}, {Model.PersonalInformation.FirstName})");
+        }
+
+    }
+
+
+    async Task DownloadReAdmissionSlip()
+    {
+        Model = Id == null ? null : await ApplicantsConnect.GetAsync(Guid.Parse(Id));
+        string fileName = "ReAdmissionSlip.docx"; // File name
+        string filePath = Path.Combine(Environment.WebRootPath, fileName);
+
+        if (!File.Exists(filePath))
+        {
+            Snackbar.Add($"File '{fileName}' not found.", Severity.Error);
+            return;
+        }
+
+        if (IsFileOpen(filePath))
+        {
+            Snackbar.Add($"Close the open document first before viewing a new one.", Severity.Error);
+            return;
+        }
+
+        if (Model != null)
+        {
+            Dictionary<string, string> bookmarksReAdmissionSlip = new Dictionary<string, string>()
+            {
+                { "Name", $"{Model.PersonalInformation.LastName.ToUpper()}, {Model.PersonalInformation.FirstName.ToUpper()} {Model.PersonalInformation.MiddleName.Substring(0,1).ToUpper()}." },
+                { "Date", $"{DateTime.Now.ToShortDateString()}" },
+                { "Program", $"{Model.CourseName}" },
+                { "Department", $"{Departments.Where(x => x.Courses.Select(x => x.Name).Contains(Model.CourseName)).Where(xx => xx.Campus.Name == Model.Schedule.Campus.Name).Select(x => x.Name).FirstOrDefault()}." },
+                { "Campus", $"{Model.Schedule.Campus.Name}" },              
+                { "NameCopy", $"{Model.PersonalInformation.LastName.ToUpper()}, {Model.PersonalInformation.FirstName.ToUpper()} {Model.PersonalInformation.MiddleName.Substring(0,1).ToUpper()}." },
+                { "DateCopy", $"{DateTime.Now.ToShortDateString()}" },
+                { "ProgramCopy", $"{Model.CourseName}" },
+                { "DepartmentCopy", $"{Departments.Where(x => x.Courses.Select(x => x.Name).Contains(Model.CourseName)).Where(xx => xx.Campus.Name == Model.Schedule.Campus.Name).Select(x => x.Name).FirstOrDefault()}" },
+                { "CampusCopy", $"{Model.Schedule.Campus.Name}" }               
+                // Add more bookmarks and data as needed
+            };
+
+            using (var document = DocX.Load(filePath))
+            {
+
+                foreach (var bookmarkAdmission in bookmarksReAdmissionSlip)
+                {
+                    string bookmarkName = bookmarkAdmission.Key;
+                    string newData = bookmarkAdmission.Value;
+
+                    var bookmark = document.Bookmarks[bookmarkName];
+
+                    if (bookmark != null)
+                    {
+                        // Clear the existing text in the paragraph
+                        bookmark.Paragraph.RemoveText(0, bookmark.Paragraph.Text.Length);
+
+                        // Insert the new data
+                        bookmark.Paragraph.InsertText(newData);
+                        bookmark.Paragraph.Font("Arial").FontSize(11);
+                    }
+                }
+
+                document.Save();
+            }
+           
+            Navigation.NavigateTo($"/downloadreadmissionslip/{fileName}?applicantName=Re-Admission Slip ({Model.PersonalInformation.LastName}, {Model.PersonalInformation.FirstName})");
+        }
+
+    }
+    
+
+    protected override void OnParametersSet()
+    {
+        activeTab = Tab switch { "transferapplication" => 1, "edit:personalinformation" => 2, "edit:educationalbackground" => 3, "edit:parentguardianinformation" => 4, "edit:examresult" => 5, _ => 0 };
+    }
+
+
+    void OnUpdated(Applicant model) => Model = model;
+
+    void OnActiveRouteIndexChanged(int index)
+    {
+        if (activeTab != index)
+        {
+            activeTab = index;
+            Navigation.NavigateTo(index switch
+            {
+                1 => $"/applicants/{Id}/transferapplication",
+                2 => $"/applicants/{Id}/edit:personalinformation",
+                3 => $"/applicants/{Id}/edit:educationalbackground",
+                4 => $"/applicants/{Id}/edit:parentguardianinformation",
+                5 => $"/applicants/{Id}/edit:examresult",
+                _ => $"/applicants/{Id}",
+            });
+        }
+    }
+
+    async Task OnDeleteClick(Guid Id, Guid schedId)
+    {
+        Model = await ApplicantsConnect.GetAsync(Id);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(ApplicantsDelete.Model), Model);
+
+        var dialog = await Dialog.ShowAsync<ApplicantsDelete>("Delete Applicant", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+
+
+            if (User != null)
+            {
+                if (User.Access != "All")
+                {
+                    Schedule = await SchedulesConnect.GetAsync(schedId);
+                    Schedule.Applicants = Schedule.Applicants.Where(x => x.Id != Id && x.Schedule.Campus.Name == User.Access).ToList();
+                }
+                else
+                {
+                    Schedule = await SchedulesConnect.GetAsync(schedId);
+                    Schedule.Applicants = Schedule.Applicants.Where(x => x.Id != Id).ToList();
+                }
+
+                Log log = new Log
+                    {
+                        Process = $"Applicant {Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0, 1)}. {Model.PersonalInformation.LastName} has been deleted by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogService.CreateAsync(log);
+            }
+
+            Navigation.NavigateTo($"/schedules/{schedId}/applicants");
+        }
+    }
+
+}
+

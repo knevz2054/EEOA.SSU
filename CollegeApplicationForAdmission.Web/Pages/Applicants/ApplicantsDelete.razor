@@ -1,0 +1,50 @@
+﻿@inject ISnackbar Snackbar
+@inject IApplicantService ApplicantsConnect
+@inject NavigationManager Navigation
+
+@if (Model != null)
+{
+    <EditForm OnValidSubmit="Submit" Model="Model">
+        <MudDialog>
+            <DialogContent>
+                <MudText Typo="Typo.body1">Are you sure you want to remove @($"{Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName} {Model.PersonalInformation.LastName}") ?</MudText>
+            </DialogContent>
+            <DialogActions>
+                <LoadingButton Loading="loading" Label="Delete" Color="Color.Error" />
+                <MudButton OnClick="Cancel">Close</MudButton>
+            </DialogActions>
+        </MudDialog>
+    </EditForm>
+}
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public Applicant? Model { get; set; }
+    bool loading = false;
+
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+
+        try
+        {
+            if (Model != null)
+                await ApplicantsConnect.DeleteAsync(Model.Id);
+
+            Snackbar.Add($"{Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName} {Model.PersonalInformation.LastName} Removed", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Course Removed Error: " + ex.Message);
+            Snackbar.Add("Error on Removing Applicant", Severity.Error);
+        }
+
+        loading = false;
+    }
+}

@@ -1,0 +1,175 @@
+﻿@using CollegeApplicationForAdmission.Services.RepositoryServices.PersonalInformationsServices
+@inject ISnackbar Snackbar
+@inject IApplicantService ApplicantsConnect
+@inject IPersonalInformationService PersonalInformationsConnect
+@inject ILogService LogService
+@inject NavigationManager Navigation
+
+<EditForm Model="Model" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
+    <MudText Color="@Color.Error">@error</MudText>
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.FirstName" For="@(() => Model.PersonalInformation.FirstName)" Label="First Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.MiddleName" For="@(() => Model.PersonalInformation.MiddleName)" Label="Middle Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.LastName" For="@(() => Model.PersonalInformation.LastName)" Label="Last Name" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.NameExtension" For="@(() => Model.PersonalInformation.NameExtension)" Label="NameExtension" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudSelect @bind-Value="Model.PersonalInformation.Sex" For="@(() =>Model.PersonalInformation.Sex)" Label="Sex" Variant="Variant.Text">
+                @foreach (Sex sex in (Sex[])Enum.GetValues(typeof(Sex)))
+                {
+                    <MudSelectItem Value="@(sex.ToFriendlyName().ToString())">@sex.ToFriendlyName()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4">
+             <MudDatePicker Label="Date of Birth" Editable="true" @bind-Date="@dateofBirth" Variant="Variant.Text" />
+         </MudItem>
+
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudSelect @bind-Value="Model.PersonalInformation.CivilStatus" For="@(() => Model.PersonalInformation.CivilStatus)" Label="Civil Status" Variant="Variant.Text">
+                @foreach (CivilStatus civil in (CivilStatus[])Enum.GetValues(typeof(CivilStatus)))
+                {
+                    <MudSelectItem Value="@(civil.ToFriendlyName().ToString())">@civil.ToFriendlyName()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.PlaceOfBirth" For="@(() => Model.PersonalInformation.PlaceOfBirth)" Label="Place of Birth" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.Citizenship" For="@(() => Model.PersonalInformation.Citizenship)" Label="Citizenship" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.HouseNo" For="@(() => Model.PersonalInformation.HouseNo)" Label="House No." Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.Street" For="@(() => Model.PersonalInformation.Street)" Label="Street" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.Barangay" For="@(() => Model.PersonalInformation.Barangay)" Label="Barangay" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.Municipality" For="@(() =>Model.PersonalInformation.Municipality)" Label="Municipality" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.Province" For="@(() => Model.PersonalInformation.Province)" Label="Province" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.ZipCode" For="@(() => Model.PersonalInformation.ZipCode)" Label="ZipCode" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.Religion" For="@(() => Model.PersonalInformation.Religion)" Label="Religion" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.Email" For="@(() => Model.PersonalInformation.Email)" Label="Email" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.PersonalInformation.ContactNumber" For="@(() => Model.PersonalInformation.ContactNumber)" Label="ContactNumber" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>    
+    <div class="d-flex justify-end mt-3">
+        <LoadingButton Loading="loading" Label="Update" Variant="Variant.Filled" />
+    </div>
+
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public EventCallback<Applicant> OnUpdated { get; set; }
+
+    [Parameter]
+    public Applicant? Model { get; set; }
+
+    [Parameter]
+    public User? User { get; set; }
+
+    DateTime? dateofBirth = new DateTime();
+    bool loading = false;
+    string error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        dateofBirth = Model.PersonalInformation.DateofBirth;
+    }
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if (Model != null)
+            {
+                if (dateofBirth == DateTime.Today || dateofBirth > DateTime.Today)
+                {
+                    throw new InvalidOperationException("Please provide a valid birthday.");
+                }
+                if (Model.PersonalInformation.ZipCode == 0)
+                {
+                    throw new InvalidOperationException("Please provide a valid zipcode.");
+                }
+                Model.PersonalInformation.DateofBirth = dateofBirth.Value;
+                var model = await PersonalInformationsConnect.UpdateAsync(Model.PersonalInformation);
+                                
+                if (User != null)
+                {
+                    Log log = new Log
+                        {
+                            Process = $"Applicant: {Model.PersonalInformation.LastName} {Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0,1)}. personal information's has been updated by {User.FirstName} {User.LastName}",
+                            Date = DateTime.Now,
+                            UserId = User.Id
+                        };
+                    await LogService.CreateAsync(log);
+                }
+
+                Snackbar.Add($"Update Successful", Severity.Success);
+                Navigation.NavigateTo($"/applicants/{Model.Id}");
+            }
+
+          
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        loading = false;
+    }
+}

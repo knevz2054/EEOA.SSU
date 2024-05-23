@@ -1,0 +1,84 @@
+﻿@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject ICampusService CampusesConnect
+@inject NavigationManager Navigation
+@inject IPasswordHasher Passwordhash
+
+@if (Model != null)
+{
+    <EditForm OnValidSubmit="Submit" Model="Model">
+
+        <DataAnnotationsValidator />
+        <MudText Color="@Color.Error">@error</MudText>
+        <MudTextField @bind-Value="NewPassword" For="@(() => Model.Password)" Label="New Password" Variant="Variant.Outlined" InputType="InputType.Password"></MudTextField>
+        <MudTextField @bind-Value="ConfirmNewPassword" For="@(() => Model.Password)" Label="Confirm New Password" Variant="Variant.Outlined" InputType="InputType.Password"></MudTextField>
+        <div class="d-flex justify-end mt-3">
+            <LoadingButton OnClick="Submit" Loading="loading" Label="Update" Variant="Variant.Filled" />
+        </div>
+
+    </EditForm>
+}
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+    ICollection<Campus>? Campuses { get; set; }
+    [Parameter]
+    public EventCallback<User> OnUpdated { get; set; }
+
+    [Parameter]
+    public User? Model { get; set; }
+    string Role = "";
+    string Access = "";
+    string error { get; set; } = "";
+    private bool loading;
+    bool IsSuperAdmin = false;
+    string NewPassword;
+    string ConfirmNewPassword;
+
+
+    async Task OnRoleChanged(string value)
+    {
+        Role = value;
+        if (Role == "SuperAdmin")
+        {
+            IsSuperAdmin = true;
+            Access = "All";
+            Campuses = null;
+        }
+        else
+        {
+            IsSuperAdmin = false;
+            Campuses = await CampusesConnect.GetCampusNoApplicant();
+
+        }
+
+    }
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if(ConfirmNewPassword != NewPassword)
+            {
+                throw new InvalidOperationException($"The password and confirmation password do not match.");
+            }
+            Model.Password = NewPassword;
+            var model = await AuthConnect.UpdateAsync(Model);
+            Snackbar.Add("Update Successful.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(model));
+            Navigation.NavigateTo("/users");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loading = false;
+
+    }
+}

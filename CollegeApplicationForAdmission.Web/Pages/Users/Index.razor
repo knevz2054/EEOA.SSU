@@ -1,0 +1,83 @@
+﻿@page "/users"
+@attribute [Authorize]
+@inject ICampusService CampusesConnect
+@inject IDialogService Dialog
+@inject IAuthService AuthConnect
+@inject ILogService LogService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+<PageTitle>Users | SWDS</PageTitle>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+<MudToolBar DisableGutters="true" WrapContent="true">
+    <MudSpacer />
+    <MudButton OnClick="OnUsersCreateClick" Variant="Variant.Outlined" Color="Color.Primary" Class="ms-1">Add User</MudButton>
+</MudToolBar>
+<MudTable Items="@Users.Where(x => x.Username != "specialuser"  && x.Username != "ictpeople")" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Username</MudTh>
+        <MudTh>Role</MudTh>
+        <MudTh>Access</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">
+            <MudLink Href="@($"/users/{context.Id}")"> @($"{context.FirstName} {context.LastName}")</MudLink>
+        </MudTd>
+        <MudTd DataLabel="Username">
+            @context.Username
+        </MudTd>       
+        <MudTd DataLabel="Role">
+            @context.Role
+        </MudTd>
+        <MudTd DataLabel="Access">
+            @context.Access
+        </MudTd>
+
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+    </PagerContent>
+</MudTable>
+
+<MudSwitch @bind-Value="@fixed_header">Fixed Header</MudSwitch>
+
+
+@code {
+    bool fixed_header = true;
+    bool loading = false;
+    IEnumerable<User>? Users { get; set; } = new List<User>();
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        Users = await AuthConnect.GetAllAsync();
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        loading = false;
+    }
+
+    async Task OnUsersCreateClick()
+    {
+        var parameters = new DialogParameters();
+        var dialog = await Dialog.ShowAsync<UsersCreate>("Add User");
+        var result = await dialog.Result;
+        if (!result.Canceled)
+            Users = await AuthConnect.GetAllAsync();
+    }
+}

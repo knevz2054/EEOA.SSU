@@ -1,0 +1,56 @@
+﻿@inject ISnackbar Snackbar
+@inject IApplicantService ApplicantsConnect
+@inject IScheduleService SchedulesConnect
+<EditForm OnValidSubmit="Submit" Model="Applicant">
+    <MudDialog>
+        <DialogContent>
+            <DataAnnotationsValidator />
+            <MudNumericField Max="55" @bind-Value="Applicant.ReadingRawScore" For="@(() => Applicant.ReadingRawScore)" Label="Scores in Reading"  Variant="Variant.Outlined"></MudNumericField>
+            <MudNumericField Max="50" @bind-Value="Applicant.MathRawScore" For="@(() => Applicant.MathRawScore)" Label="Scores in Math" Variant="Variant.Outlined"></MudNumericField>
+            <MudNumericField Max="55" @bind-Value="Applicant.ScienceRawScore" For="@(() => Applicant.ScienceRawScore)" Label="Scores in Science" Variant="Variant.Outlined"></MudNumericField>
+            <MudNumericField Max="135" @bind-Value="Applicant.IntelligenceRawScore" For="@(() => Applicant.IntelligenceRawScore)" Label="Scores in Intelligence Test" Variant="Variant.Outlined"></MudNumericField>
+
+        </DialogContent>
+        <DialogActions>
+            <LoadingButton Loading="loading" />
+            <MudButton OnClick="Cancel">Close</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+    [Parameter]
+    public Applicant Applicant { get; set; }
+    string error { get; set; } = "";
+    private bool loading;   
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if(Applicant.ReadingRawScore == null || Applicant.MathRawScore == null || Applicant.ScienceRawScore == null || Applicant.IntelligenceRawScore == null)
+            {
+                throw new InvalidOperationException($"Incomplete Data");               
+            }
+
+            Applicant.IsExamined = true;
+            var model = await ApplicantsConnect.UpdateAsync(Applicant);
+            StateHasChanged();
+            Snackbar.Add("Applicant's examination result has been saved", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(model));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loading = false;
+        StateHasChanged();
+    }
+}

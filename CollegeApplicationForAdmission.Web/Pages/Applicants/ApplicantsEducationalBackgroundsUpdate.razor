@@ -1,0 +1,127 @@
+﻿@inject ISnackbar Snackbar
+@inject IApplicantService ApplicantsConnect
+@inject IEducationalBackGroundService EducationalBackGroundsConnect
+@inject ILogService LogService
+@inject NavigationManager Navigation
+@using System.Text.RegularExpressions;
+@using CollegeApplicationForAdmission.Services.RepositoryServices.EducationalBackGroundsServices
+
+<EditForm Model="Model" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
+    <MudText Color="@Color.Error">@error</MudText>
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudSelect @bind-Value="Model.ApplicantStatus" For="@(() => Model.ApplicantStatus)" Label="Track/Strand/Program Major" Variant="Variant.Text">
+                @foreach (StudenStatus track in (StudenStatus[])Enum.GetValues(typeof(StudenStatus)))
+                {
+                    <MudSelectItem Value="@(track.ToFriendlyName().ToString())">@track.ToFriendlyName()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        @if (Model.ApplicantStatus == "New")
+        {
+            <MudItem xs="12" sm="4" md="4">
+                <MudSelect @bind-Value="Model.EducationalBackground.Track" For="@(() => Model.EducationalBackground.Track)" Label="Track/Strand/Program Major" Variant="Variant.Text">
+                    @foreach (TracksAndStrands track in (TracksAndStrands[])Enum.GetValues(typeof(TracksAndStrands)))
+                    {
+                        <MudSelectItem Value="@(track.ToFriendlyName().ToString())">@track.ToFriendlyName()</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+        else
+        {
+            <MudItem xs="12" sm="4" md="4">
+                <MudTextField @bind-Value="Model.EducationalBackground.Track" For="@(() => Model.EducationalBackground.Track)" Label="Program Major" Variant="Variant.Text"></MudTextField>
+            </MudItem>
+        }
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.EducationalBackground.Honors" For="@(() => Model.EducationalBackground.Honors)" Label="Honors Received" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.EducationalBackground.SchoolLastAttended" For="@(() => Model.EducationalBackground.SchoolLastAttended)" Label="School Last Attended" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudTextField @bind-Value="Model.EducationalBackground.SchoolAddress" For="@(() => Model.EducationalBackground.SchoolAddress)" Label="School Address" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="4">
+            <MudSelect @bind-Value="Model.EducationalBackground.SchoolSector" For="@(() => Model.EducationalBackground.SchoolSector)" Label="School Sector" Variant="Variant.Text">
+                @foreach (SchoolSector sector in (SchoolSector[])Enum.GetValues(typeof(SchoolSector)))
+                {
+                    <MudSelectItem Value="@(sector.ToFriendlyName().ToString())">@sector.ToFriendlyName()</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+    <MudGrid Spacing="1">
+        <MudItem xs="12" sm="6" md="6">
+            <MudTextField Label="Date Graduated / Tentative Graduation" T=int @bind-Value="Model.EducationalBackground.YearGraduated" Variant="Variant.Text" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="6">
+            <MudTextField MaxLines="12" @bind-Value="Model.EducationalBackground.LRN" For="@(() => Model.EducationalBackground.LRN)" Label="LRN" Variant="Variant.Text"></MudTextField>
+        </MudItem>
+    </MudGrid>  
+    <div class="d-flex justify-end mt-3">
+        <LoadingButton Loading="loading" Label="Update" Variant="Variant.Filled" />
+    </div>
+
+</EditForm>
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public EventCallback<Applicant> OnUpdated { get; set; }
+
+    [Parameter]
+    public Applicant? Model { get; set; }
+
+    [Parameter]
+    public User? User { get; set; }
+
+
+    bool loading = false;
+    string error = "";
+
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if (Model != null)
+            {
+                await ApplicantsConnect.UpdateAsync(Model);
+                await EducationalBackGroundsConnect.UpdateAsync(Model.EducationalBackground);
+
+                if (User != null)
+                {
+                    Log log = new Log
+                        {
+                            Process = $"Applicant: {Model.PersonalInformation.LastName} {Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0, 1)}. educational background's has been updated by {User.FirstName} {User.LastName}",
+                            Date = DateTime.Now,
+                            UserId = User.Id
+                        };
+                    await LogService.CreateAsync(log);
+                }
+
+                Snackbar.Add($"Update Successful", Severity.Success);
+                Navigation.NavigateTo($"/applicants/{Model.Id}");
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        loading = false;
+    }
+}

@@ -1,0 +1,209 @@
+﻿@inject ISnackbar Snackbar
+@inject IScheduleService SchedulesConnect
+@inject ICampusService CampusesConnect
+@inject IApplicantService ApplicantsConnect
+@inject IDialogService Dialog
+
+@if (Campuses != null)
+{
+    <EditForm Model="ApplicantModel" OnValidSubmit="Submit">
+        <DataAnnotationsValidator />
+        <MudText Color="@Color.Error">@error</MudText>
+
+        <MudText Typo="Typo.h5">Application Details</MudText>
+        <MudGrid Spacing="1">
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="Campus" ValueChanged="(value) => OnCampusChanged(value)" Label="Campus" Variant="Variant.Text">
+                    @foreach (var campus in Campuses.Distinct())
+                    {
+                        <MudSelectItem Value="@campus">@campus.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect Disabled="Campus == null" T="string" Value="@meridiem" ValueChanged="(value) => OnTimeChanged(value)" Label="Time" Variant="Variant.Text">
+                    <MudSelectItem Value=@("8:00am")>8:00am</MudSelectItem>
+                    <MudSelectItem Value=@("1:00pm")>1:00pm</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            @if (Campus != null)
+            {
+                if (Loading)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSelect Disabled="meridiem==string.Empty"  T="string" @bind-Value="dateSchedule">
+                            @foreach (var item in ScheduleDates)
+                            {
+                                <MudSelectItem Value=@item.ToShortDateString()>@item.ToString("MMMM dd, yyyy (dddd)")</MudSelectItem>
+                            }
+
+                        </MudSelect>
+                    </MudItem>
+                }
+            }
+            else
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudTextField Disabled T="string" Label="Schedule" Variant="Variant.Text"></MudTextField>
+                </MudItem>
+            }
+        </MudGrid>
+        <MudGrid Spacing="1">
+            @if (Campus != null && meridiem != string.Empty)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudSelect @bind-Value="Course" Label="Program Preference" Variant="Variant.Text">
+                        @foreach (var course in Campus.Courses.Where(x => x.IsFlag == false))
+                        {
+                            <MudSelectItem Value="@(course)">@course.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudTextField Disabled T="string" Label="Program Preference" Variant="Variant.Text"></MudTextField>
+                </MudItem>
+
+            }
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect Disabled="Campus == null && meridiem == string.Empty" @bind-Value="ApplicantModel.ApplicantStatus" For="@(() => ApplicantModel.ApplicantStatus)" Label="Student Status" Variant="Variant.Text">
+                    @foreach (StudenStatus status in (StudenStatus[])Enum.GetValues(typeof(StudenStatus)))
+                    {
+                        <MudSelectItem Value="@(status.ToFriendlyName().ToString())">@status.ToFriendlyName()</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
+            <MudItem xs="12">
+                <LoadingButton Loading="loading" Label="Next" Variant="Variant.Filled" />
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+}
+
+
+@code {
+    Applicant ApplicantModel = new();
+
+    [Parameter]
+    public Action OnSubmissionSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback<Applicant> OnApplicantCreated { get; set; }
+   
+    Campus _selectedCampus;
+    Course _selectedCourse;
+    private Campus Campus
+    {
+        get => _selectedCampus;
+        set
+        {
+            if (_selectedCampus != value)
+            {
+                _selectedCampus = value;
+                Course = null; // Reset the course selection when the campus changes
+                dateSchedule = null;
+                meridiem = string.Empty;
+            }
+        }
+    }
+    Course Course
+    {
+        get => _selectedCourse;
+        set => _selectedCourse = value;
+    }
+    ICollection<Campus>? Campuses { get; set; }
+    List<DateTime> ScheduleDates { get; set; } = new List<DateTime>();
+    ICollection<Schedule>? Schedules { get; set; }
+    string error = "";
+    bool loading = false;
+    bool Loading = false;
+    string meridiem = string.Empty;
+    // DateTime? dateSchedule = new DateTime();
+    string dateSchedule = "";
+    protected override async Task OnInitializedAsync()
+    {
+        var campuses = await CampusesConnect.GetCampusNoApplicant();
+        Campuses = campuses.Where(x => x.Schedules != null && x.Schedules.Any(xx => xx.ScheduleDate.Date >= DateTime.Now.Date)).ToList();
+    }
+
+    async Task OnTimeChanged(string time)
+    {
+        Loading = true;
+        meridiem = time;
+        Schedules = await SchedulesConnect.GetAllAsync();
+        var currentDate = DateTime.Now.Date;
+        ScheduleDates = Schedules
+            .Where(x => x.Meridiem == time && x.Available > 0 && x.ScheduleDate > currentDate && x.CampusId == Campus.Id)
+            .Select(x => x.ScheduleDate.Date)
+            .ToList();
+        dateSchedule = ScheduleDates.Count > 0 ? "Select Schedule Date" : "No Available Schedule";
+               
+        Loading = false;
+    }
+
+    async Task OnCampusChanged(Campus campus)
+    {
+        Campus = await CampusesConnect.GetCampusAsync(campus.Id);
+        meridiem = string.Empty;
+        //Campus = campus;
+    }
+
+
+    bool DisableDates(DateTime date)
+    {
+        // Disable the date if it's not in the list of enabled dates
+        return !ScheduleDates.Contains(date.Date);
+    }
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+
+            if (Course == null)
+            {
+                throw new InvalidOperationException($"Please select a program preference.");
+            }
+
+
+            ApplicantModel.CourseName = Course.Name;
+            ApplicantModel.DateRegistered = DateTime.Now;
+            ApplicantModel.ExamTimeTaken = meridiem;
+            if (dateSchedule == "Select Schedule Date" || dateSchedule == "No Available Schedule")
+            {
+                throw new InvalidOperationException($"Select schedule.");
+            }
+            // ApplicantModel.ScheduleId = Schedules.Where(x => x.CampusId == Campus.Id && x.ScheduleDate == dateSchedule && x.Meridiem == meridiem).Select(x => x.Id).SingleOrDefault();
+            ApplicantModel.ScheduleId = Schedules.Where(x => x.CampusId == Campus.Id && x.ScheduleDate == DateTime.Parse(dateSchedule) && x.Meridiem == meridiem).Select(x => x.Id).SingleOrDefault();
+            if (ApplicantModel.ScheduleId == Guid.Empty)
+            {
+                throw new InvalidOperationException($"Select schedule.");
+            }
+            var model = await ApplicantsConnect.CreateAsync(ApplicantModel);
+            Snackbar.Add($"Step 1 completed", Severity.Success);
+
+            OnSubmissionSuccess?.Invoke();
+            await OnApplicantCreated.InvokeAsync(ApplicantModel);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        loading = false;
+    }
+
+
+}

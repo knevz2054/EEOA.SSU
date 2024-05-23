@@ -1,0 +1,49 @@
+﻿@inject ISnackbar Snackbar
+@inject IScheduleService SchedulesConnect
+@inject NavigationManager Navigation
+
+@if (Model != null)
+{
+    <EditForm OnValidSubmit="Submit" Model="Model">
+        <MudDialog>
+            <DialogContent>
+                <MudText Typo="Typo.body1">Are you sure you want to remove the schedule @Model.ScheduleDate.ToShortDateString() in @Model.Campus.Name?</MudText>
+            </DialogContent>
+            <DialogActions>
+                <LoadingButton Loading="loading" Label="Delete" Color="Color.Error" />
+                <MudButton OnClick="Cancel">Close</MudButton>
+            </DialogActions>
+        </MudDialog>
+    </EditForm>
+}
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+    [Parameter]
+    public Schedule? Model { get; set; }
+    bool loading = false;
+
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+
+        try
+        {
+            if (Model != null)
+                await SchedulesConnect.DeleteAsync(Model.Id);
+
+            Snackbar.Add($"Schedule {Model.ScheduleDate.ToShortDateString()} in {Model.Campus.Name} was Removed", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Schedule Removed Error: " + ex.Message);
+            Snackbar.Add("Error on Removing Schedule", Severity.Error);
+        }
+
+        loading = false;
+    }
+}

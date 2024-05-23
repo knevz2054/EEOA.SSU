@@ -1,0 +1,369 @@
+﻿@page "/applicants"
+@using System.Text
+@attribute [Authorize]
+@inject IApplicantService ApplicantsConnect
+@inject IDialogService Dialog
+@inject ILogService LogService
+@inject IAuthService AuthConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+<PageTitle>Applicants | SWDS</PageTitle>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+<MudToolBar DisableGutters="true" WrapContent="true">
+    <MudCheckBox T="bool" Value="View" ValueChanged="(value) => ViewDuplicates(value)" Label="View Duplicates" Class="mud-button-like-checkbox" />
+    <MudSpacer />
+    <MudSpacer />
+    <MudItem xs="12" sm="6" md="4" lg="3" xl="2">
+        <MudTextField T="string" ValueChanged="(value) => OnSearchInputChange(value)" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Label="Search by Last Name" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </MudItem>
+</MudToolBar>
+
+<MudTable Items="@Applicants.OrderBy(ma => ma.PersonalInformation.LastName)" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")" SortLabel="Sort By">
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<Applicant, object>(x => x.PersonalInformation.LastName)">
+                <MudText Typo="Typo.caption">Applicant's Name</MudText>
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<Applicant, object>(x => x.CourseName)">
+                <MudText Typo="Typo.caption">Program Preference</MudText>
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel SortBy="new Func<Applicant, object>(x => x.Schedule.Campus.Name)">
+                <MudText Typo="Typo.caption">Campus</MudText>
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudText Typo="Typo.caption">Application Date</MudText>
+        </MudTh>
+        <MudTh>
+            <MudText Typo="Typo.caption">Exam</MudText>
+        </MudTh>
+        <MudTh>
+            <MudText Typo="Typo.caption">Interview</MudText>
+        </MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Applicant Name">
+            <MudLink Href="@($"/applicants/{context.Id}")">
+                <MudText Typo="Typo.caption">
+                    @($"{context.PersonalInformation.LastName}, {context.PersonalInformation.FirstName} {context.PersonalInformation.MiddleName.Substring(0, 1)}.")
+                </MudText>
+            </MudLink>
+        </MudTd>
+        <MudTd DataLabel="Program Preference">
+            <MudText Typo="Typo.caption">@context.CourseName</MudText>
+        </MudTd>
+        <MudTd DataLabel="Campus">
+            <MudText Typo="Typo.caption">@context.Schedule.Campus.Name</MudText>
+        </MudTd>
+        <MudTd DataLabel="Application Date">
+            <MudText Typo="Typo.caption">@context.DateRegistered</MudText>
+        </MudTd>
+        <MudTd DataLabel="Exam">
+            @if (context.IsExamined == false)
+            {
+                <MudButton OnClick="() => OnExamResultClick(context.Id)" StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Info" Class="ms-1" Size="Size.Small">
+                    <MudText Typo="Typo.caption" Color="Color.Info">Exam</MudText>
+                </MudButton>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption">Done</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Interview">
+            @if (context.IsInterviewed == false)
+            {
+                <MudButton OnClick="() => OnInterviewResultClick(context.Id)" StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Info" Class="ms-1" Size="Size.Small">
+                    <MudText Typo="Typo.caption" Color="Color.Info">Interview</MudText>
+                </MudButton>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption">Done</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Action">
+            <MudIconButton Color="Color.Error" OnClick="() => Delete(context.Id)" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" />
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50, 100, 200, 300, 400, 500}" />
+    </PagerContent>
+</MudTable>
+
+<MudSwitch @bind-Value="@fixed_header">Fixed Header</MudSwitch>
+
+
+@code {
+    bool fixed_header = true;
+    bool loading = false;
+    bool View = false;
+    IEnumerable<Applicant>? Applicants { get; set; } = new List<Applicant>();
+    string? result { get; set; }
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        if (User.Access != "All")
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => x.Schedule.Campus.Name == User.Access).ToList();
+            ApplySearchFilter(Applicants);
+        }
+        else
+        {
+            Applicants = await ApplicantsConnect.GetAllAsync();
+            ApplySearchFilter(Applicants);
+        }
+
+
+
+        loading = false;
+    }
+
+    private void ApplySearchFilter(IEnumerable<Applicant> applicants)
+    {
+        if (User.Access != "All")
+        {
+            if (string.IsNullOrEmpty(result))
+                Applicants = applicants.Where(x => x.IsCompleted && x.Schedule.Campus.Name == User.Access).ToList();
+            else
+                Applicants = applicants.Where(x => x.IsCompleted && x.Schedule.Campus.Name == User.Access && x.PersonalInformation.LastName.Contains(result, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(result))
+                Applicants = applicants.Where(x => x.IsCompleted).ToList();
+            else
+                Applicants = applicants.Where(x => x.IsCompleted && x.PersonalInformation.LastName.Contains(result, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+    }
+
+    // Method to handle search input change
+    private async Task OnSearchInputChange(string newValue)
+    {
+        result = newValue;
+        loading = true;
+        var applicants = await ApplicantsConnect.GetAllAsync();
+        ApplySearchFilter(applicants);
+        loading = false;
+    }
+    async Task ViewDuplicates(bool view)
+    {
+        View = view;
+        if (View == true)
+        {
+            if (User.Access != "All")
+            {
+                // Fetch completed applicants based on user access
+                var applicants = await ApplicantsConnect.GetAllAsync();
+
+                // Group completed applicants by normalized first name, middle name, and last name
+                var duplicateApplicants = applicants
+                    .Where(x => x.IsCompleted && x.Schedule.Campus.Name == User.Access)
+                    .GroupBy(x => new
+                    {
+                        FirstName = NormalizeName(x.PersonalInformation.FirstName),
+                        MiddleName = NormalizeName(x.PersonalInformation.MiddleName),
+                        LastName = NormalizeName(x.PersonalInformation.LastName)
+                    })
+                    .Where(g => g.Count() > 1) // Select groups with more than one applicant
+                    .SelectMany(g => g); // Flatten the grouped result
+
+                // Display duplicate applicants
+                Applicants = duplicateApplicants.ToList();
+                ApplySearchFilter(Applicants);
+            }
+            else
+            {
+                // Fetch all completed applicants
+                var applicants = await ApplicantsConnect.GetAllAsync();
+
+                // Group all completed applicants by normalized first name, middle name, and last name
+                var duplicateApplicants = applicants
+                    .Where(x => x.IsCompleted)
+                    .GroupBy(x => new
+                    {
+                        FirstName = NormalizeName(x.PersonalInformation.FirstName),
+                        MiddleName = NormalizeName(x.PersonalInformation.MiddleName),
+                        LastName = NormalizeName(x.PersonalInformation.LastName)
+                    })
+                    .Where(g => g.Count() > 1) // Select groups with more than one applicant
+                    .SelectMany(g => g); // Flatten the grouped result
+
+                // Display duplicate applicants
+                Applicants = duplicateApplicants.ToList();
+                ApplySearchFilter(Applicants);
+            }
+        }
+        else
+        {
+            // Reset the view to show all completed applicants
+            if (User.Access != "All")
+            {
+                var applicants = await ApplicantsConnect.GetAllAsync();
+                Applicants = applicants.Where(x => x.IsCompleted && x.Schedule.Campus.Name == User.Access).ToList();
+                ApplySearchFilter(Applicants);
+            }
+            else
+            {
+                var applicants = await ApplicantsConnect.GetAllAsync();
+                Applicants = applicants.Where(x => x.IsCompleted).ToList();
+                ApplySearchFilter(Applicants);
+            }
+        }
+
+    }
+
+    string NormalizeName(string name)
+    {
+        // Trim leading and trailing spaces, convert to lower case, and remove special characters
+        return name.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormKC);
+    }
+
+    async Task OnExamResultClick(Guid AppId)
+    {
+
+        Applicant Applicant = await ApplicantsConnect.GetAsync(AppId);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(ApplicantsExamination.Applicant), Applicant);
+        var dialog = await Dialog.ShowAsync<ApplicantsExamination>("Examination Result", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Update the Applicant object in the Model.Applicants collection
+
+            if (User != null)
+            {
+                if (User.Access != "All")
+                {
+                    var applicants = await ApplicantsConnect.GetAllAsync();
+                    Applicants = applicants.Where(x => x.Schedule.Campus.Name == User.Access).ToList();
+                    ApplySearchFilter(Applicants);
+                }
+                else
+                {
+                    Applicants = await ApplicantsConnect.GetAllAsync();
+                    ApplySearchFilter(Applicants);
+                }
+
+
+                Log log = new Log
+                    {
+                        Process = $"Applicant {Applicant.PersonalInformation.FirstName} {Applicant.PersonalInformation.MiddleName.Substring(0, 1)}. {Applicant.PersonalInformation.MiddleName} exam result has been recorded by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogService.CreateAsync(log);
+            }
+        }
+
+        loading = false;
+        StateHasChanged();
+    }
+
+    async Task OnInterviewResultClick(Guid AppId)
+    {
+
+        Applicant Applicant = await ApplicantsConnect.GetAsync(AppId);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(ApplicantsInterview.Applicant), Applicant);
+        var dialog = await Dialog.ShowAsync<ApplicantsInterview>("Interview Result", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Update the Applicant object in the Model.Applicants collection
+
+            if (User != null)
+            {
+                if (User.Access != "All")
+                {
+                    var applicants = await ApplicantsConnect.GetAllAsync();
+                    Applicants = applicants.Where(x => x.Schedule.Campus.Name == User.Access).ToList();
+                    ApplySearchFilter(Applicants);
+                }
+                else
+                {
+                    Applicants = await ApplicantsConnect.GetAllAsync();
+                    ApplySearchFilter(Applicants);
+                }
+
+
+                Log log = new Log
+                    {
+                        Process = $"Applicant {Applicant.PersonalInformation.FirstName} {Applicant.PersonalInformation.MiddleName.Substring(0, 1)}. {Applicant.PersonalInformation.MiddleName} interview result has been recorded by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogService.CreateAsync(log);
+            }
+        }
+
+        loading = false;
+        StateHasChanged();
+    }
+
+    async Task Delete(Guid Id)
+    {
+        var Model = await ApplicantsConnect.GetAsync(Id);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(ApplicantsDelete.Model), Model);
+
+        var dialog = await Dialog.ShowAsync<ApplicantsDelete>("Delete Application", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (User != null)
+            {
+
+                if (User.Access != "All")
+                {
+                    var applicants = await ApplicantsConnect.GetAllAsync();
+                    Applicants = applicants.Where(x => x.Schedule.Campus.Name == User.Access).ToList();
+                    ApplySearchFilter(Applicants);
+                }
+                else
+                {
+                    Applicants = await ApplicantsConnect.GetAllAsync();
+                    ApplySearchFilter(Applicants);
+                }
+
+                Log log = new Log
+                    {
+                        Process = $"Duplicate data has been deleted by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogService.CreateAsync(log);
+            }
+
+        }
+        View = false;
+    }
+}

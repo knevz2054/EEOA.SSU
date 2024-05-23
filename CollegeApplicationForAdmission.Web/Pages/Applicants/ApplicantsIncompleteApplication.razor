@@ -1,0 +1,221 @@
+﻿@page "/applicants-incomplete-application"
+@attribute [Authorize]
+@inject IApplicantService ApplicantsConnect
+@inject IDialogService Dialog
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject ILogService LogService
+<PageTitle>Applicants | SWDS</PageTitle>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+
+@if (Applicants != null)
+{   
+    @if (Applicants.Count() > 0)
+    {
+        <MudToolBar DisableGutters="true" WrapContent="true">
+            <MudSpacer />
+            <MudButton OnClick="DeletAllIncomplete" Variant="Variant.Outlined" Color="Color.Error" Class="ms-1">Delete All</MudButton>
+        </MudToolBar>
+    }
+    <MudTable Items="@Applicants.OrderByDescending(x => x.DateRegistered)" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")">
+        <HeaderContent>
+            <MudTh>Program Preference</MudTh>
+            <MudTh>Campus</MudTh>
+            <MudTh>Personal Information</MudTh>
+            <MudTh>Educational Background</MudTh>
+            <MudTh>Parent/Guardian Information</MudTh>
+            <MudTh>Schedule Date</MudTh>
+            <MudTh>Date Registered</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Program Preference">
+                @context.CourseName
+            </MudTd>
+            <MudTd DataLabel="Date Registered">
+                @context.Schedule.Campus.Name
+            </MudTd>
+            <MudTd DataLabel="Personal Information">
+                @($"{(context.PersonalInformation == null ? "Incomplete" : $"{context.PersonalInformation.LastName}, {context.PersonalInformation.FirstName} {context.PersonalInformation.MiddleName.Substring(0, 1)}.")}")
+            </MudTd>
+            <MudTd DataLabel="Educational Background">
+                @($"{(context.EducationalBackground == null ? "Incomplete" : $"{context.EducationalBackground.Track}")}")
+            </MudTd>
+            <MudTd DataLabel="Parent/Guardian Information">
+                @($"{(context.ParentGuardianInformation == null ? "Incomplete" : "")}")
+            </MudTd>
+            <MudTd DataLabel="Schedule Date">
+                @($"{context.Schedule.ScheduleDate.ToString("MMMM dd, yyyy (dddd)")} {(context.Schedule.Meridiem)}")
+            </MudTd>
+            <MudTd DataLabel="Date Registered">
+                @context.DateRegistered
+            </MudTd>
+            <MudTd DataLabel="Delete">
+                <MudIconButton Color="Color.Error" OnClick="() => Delete(context.Id)" Icon="@Icons.Material.Filled.Delete" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+        </PagerContent>
+    </MudTable>
+
+    <MudSwitch @bind-Value="@fixed_header">Fixed Header</MudSwitch>
+}
+
+
+
+@code {
+    bool fixed_header = true;
+    bool loading = false;
+    IEnumerable<Applicant>? Applicants { get; set; } = new List<Applicant>();
+    Applicant? Model;
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        if (User.Access != "All")
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => !x.IsCompleted && x.Schedule.Campus.Name == User.Access).ToList();
+        }
+        else
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => !x.IsCompleted).ToList();
+        }
+
+        loading = false;
+    }
+
+    async Task DeletAllIncomplete()
+    {
+        if (User.Access != "All")
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => !x.IsCompleted && x.Schedule.Campus.Name == User.Access).ToList();
+            var parameters = new DialogParameters();
+            parameters.Add(nameof(ApplicantsDeleteAllIncomplete.Applicants), Applicants);
+
+            var dialog = await Dialog.ShowAsync<ApplicantsDeleteAllIncomplete>("Delete Incomplete Application", parameters);
+            var result = await dialog.Result;
+
+            if (!result.Canceled)
+            {
+                if (User != null)
+                {
+                    if (User.Access != "All")
+                    {
+                        var app = await ApplicantsConnect.GetAllAsync();
+                        Applicants = app.Where(x => !x.IsCompleted && x.Schedule.Campus.Name == User.Access).ToList();
+                    }
+                    else
+                    {
+                        var app = await ApplicantsConnect.GetAllAsync();
+                        Applicants = app.Where(x => !x.IsCompleted).ToList();
+                    }
+
+                    Log log = new Log
+                        {
+                            Process = $"Applicant with incomplete data has been deleted by {User.FirstName} {User.LastName}",
+                            Date = DateTime.Now,
+                            UserId = User.Id
+                        };
+                    await LogService.CreateAsync(log);
+                }
+
+            }
+
+        }
+        else
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => !x.IsCompleted).ToList();
+            var parameters = new DialogParameters();
+            parameters.Add(nameof(ApplicantsDeleteAllIncomplete.Applicants), Applicants);
+
+            var dialog = await Dialog.ShowAsync<ApplicantsDeleteAllIncomplete>("Delete Incomplete Application", parameters);
+            var result = await dialog.Result;
+
+            if (!result.Canceled)
+            {
+                if (User != null)
+                {
+                    if (User.Access != "All")
+                    {
+                        var app = await ApplicantsConnect.GetAllAsync();
+                        Applicants = app.Where(x => !x.IsCompleted && x.Schedule.Campus.Name == User.Access).ToList();
+                    }
+                    else
+                    {
+                        var app = await ApplicantsConnect.GetAllAsync();
+                        Applicants = app.Where(x => !x.IsCompleted).ToList();
+                    }
+
+                    Log log = new Log
+                        {
+                            Process = $"Applicant with incomplete data has been deleted by {User.FirstName} {User.LastName}",
+                            Date = DateTime.Now,
+                            UserId = User.Id
+                        };
+                    await LogService.CreateAsync(log);
+                }
+
+            }
+        }       
+    }
+
+    async Task Delete(Guid Id)
+    {
+        Model = await ApplicantsConnect.GetAsync(Id);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(ApplicantsDeleteIncomplete.Model), Model);
+
+        var dialog = await Dialog.ShowAsync<ApplicantsDeleteIncomplete>("Delete Incomplete Application", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if(User != null)
+            {
+                if (User.Access != "All")
+                {
+                    var applicants = await ApplicantsConnect.GetAllAsync();
+                    Applicants = applicants.Where(x => !x.IsCompleted && x.Schedule.Campus.Name == User.Access).ToList();
+                }
+                else
+                {
+                    var applicants = await ApplicantsConnect.GetAllAsync();
+                    Applicants = applicants.Where(x => !x.IsCompleted).ToList();
+                }
+
+                Log log = new Log
+                    {
+                        Process = $"Applicant with incomplete data has been deleted by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogService.CreateAsync(log);               
+            }
+            
+        }
+    }
+}

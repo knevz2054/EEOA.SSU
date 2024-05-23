@@ -1,0 +1,37 @@
+﻿@if (Model != null)
+{
+    <MudSimpleTable Elevation="0" Class="details mb-10">
+        <tbody>
+            <tr>
+                <td style="width: 200px;">Name</td>
+                <td>@Model.Campus.Name</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Schedule Date</td>
+                <td>@Model.ScheduleDate.ToShortDateString()</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Venue</td>
+                <td>@Model.Venue</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Applicants Count</td>
+                <td>@Model.Applicants.Count</td>
+            </tr>
+            
+            <tr>
+                <td style="width: 200px;">Created By</td>
+                <td>@Model.CreatedBy</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Created Date</td>
+                <td>@Model.DateCreated.ToShortDateString()</td>
+            </tr>            
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter]
+    public Schedule? Model { get; set; }
+}

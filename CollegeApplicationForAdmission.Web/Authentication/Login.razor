@@ -1,0 +1,76 @@
+﻿@page "/ssu/swds/login"
+@layout PublicLayout
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService Dialog
+@inject IAuthService AuthConnect
+
+@* @if (user != null && user.Identity != null && !user.Identity.IsAuthenticated)
+{
+    
+} *@
+<div class="d-flex justify-center align-center vh-100">
+    <EditForm OnValidSubmit="OnSubmit" Model="login">
+        <DataAnnotationsValidator />
+        <MudText Typo="Typo.h1">Please sign in</MudText>
+
+        <MudTextField @bind-Value="login.UserName" For="@(() => login.UserName)" Disabled="loading" AutoFocus="true"
+                      Label="Username" Variant="Variant.Outlined" Clearable="false" />
+        <MudTextField @bind-Value="login.Password" For="@(() => login.Password)" Disabled="loading" InputType="InputType.Password"
+                      Label="Password" Variant="Variant.Outlined" Class="mb-3" />
+
+        <LoadingButton Loading="loading" Label="Sign in" Variant="Variant.Filled" FullWidth="true" />
+        <MudText Color="@Color.Error">@error</MudText>
+    </EditForm>
+</div>
+@code {
+    string error { get; set; } = "";
+    private bool loading = false;
+
+    LoginModel login = new();
+    ClaimsPrincipal? user { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+
+        if (user.Identity!.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", true);
+        }
+    }
+
+    async Task OnSubmit()
+    {
+        loading = true;
+        error = ""; ;
+
+        try
+        {
+            var userAccount = await AuthConnect.Login(login.UserName, login.Password);
+            var customAuthStateProvider = (CustomAuthenticationStateProvider)AuthStateProvider;
+
+            var userSession = new UserSession
+                {
+                    Id = userAccount.Id,
+                    Username = userAccount.Username,
+                    Role = userAccount.Role
+                };
+
+            await customAuthStateProvider.UpdateAuthenticationState(userSession);
+
+            var updatedAuthState = await customAuthStateProvider.GetAuthenticationStateAsync();
+            var user = updatedAuthState.User;
+            Snackbar.Add("User is authenticated", Severity.Success);
+            await Task.Delay(1000);
+            Navigation.NavigateTo("/", true);
+        }
+        catch (UserNotFoundException ex)
+        {
+
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        loading = false;
+    }
+}

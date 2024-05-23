@@ -1,0 +1,129 @@
+﻿@page "/campuses/{Id}/{Tab?}"
+@attribute [Authorize]
+@inject NavigationManager Navigation
+@inject IDialogService Dialog
+@inject ICampusService CampusesConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject ILogService LogService
+
+<PageTitle>
+    @if (Model != null)
+    {
+        if (Tab != "edit")
+            @($"{Model.Name} | Details")
+        else
+            @($"{Model.Name} | Edit")
+    }
+</PageTitle>
+
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+@if (Model != null)
+{
+    <MudToolBar DisableGutters="true" WrapContent="true">
+        <MudText Typo="Typo.h5">@Model.Name</MudText>
+        <MudSpacer />
+        <MudButtonGroup Variant="Variant.Outlined">
+            <MudButton Href="/campuses" StartIcon="@Icons.Material.Filled.ChevronLeft" Variant="Variant.Outlined" Size="Size.Small">
+                <MudText Color="Color.Default">Campuses</MudText>
+            </MudButton>
+            @if (Tab != "edit")
+            {
+                <MudButton OnClick="() => OnDeleteClick(Model.Id)" Variant="Variant.Outlined" Color="Color.Error" Class="ms-1" Size="Size.Small">
+                    <MudText Color="Color.Error">Delete</MudText>
+                </MudButton>
+            }
+        </MudButtonGroup>
+
+    </MudToolBar>
+
+    <MudTabs ActivePanelIndex="activeTab" ActivePanelIndexChanged="OnActiveRouteIndexChanged"
+             ApplyEffectsToContainer="true" Elevation="1" Rounded="true" PanelClass="pa-6">
+        <MudTabPanel Text="Details">
+            <CampusesDetails Model="Model"></CampusesDetails>
+        </MudTabPanel>
+        <MudTabPanel Text="Edit">
+            <CampusesUpdate User="User" Model="Model" OnUpdated="OnUpdated"></CampusesUpdate>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    [Parameter]
+    public string? Tab { get; set; }
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    Campus? Model;
+    int activeTab = 0;
+    bool loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        Model = Id == null ? null : await CampusesConnect.GetAsync(Guid.Parse(Id));
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        loading = false;
+    }
+
+    protected override void OnParametersSet()
+    {
+        activeTab = Tab switch { "edit" => 1, _ => 0 };
+    }
+
+    void OnActiveRouteIndexChanged(int index)
+    {
+        if (activeTab != index)
+        {
+            activeTab = index;
+            Navigation.NavigateTo(index switch
+            {
+                1 => $"/campuses/{Id}/edit",
+                _ => $"/campuses/{Id}",
+            });
+        }
+    }
+    void OnUpdated(Campus model) => Model = model;
+
+    async Task OnDeleteClick(Guid Id)
+    {
+        Model = await CampusesConnect.GetAsync(Id);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(CampusesDelete.Model), Model);
+
+        var dialog = await Dialog.ShowAsync<CampusesDelete>("Delete Campus", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if(User != null)
+            {
+                Log log = new Log
+                    {
+                        Process = $"{Model.Name} has been deleted by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogService.CreateAsync(log);
+            }   
+            Navigation.NavigateTo("/campuses");
+        }
+
+    }
+}

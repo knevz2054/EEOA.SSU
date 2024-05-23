@@ -1,0 +1,104 @@
+﻿@inject ISnackbar Snackbar
+@inject IAuthService AuthsConnect
+@inject ICampusService CampusesConnect
+
+
+    <EditForm OnValidSubmit="Submit" Model="Model">
+        <MudDialog>
+            <DialogContent>
+                <DataAnnotationsValidator />
+                <MudText Color="@Color.Error">@error</MudText>
+                <MudTextField @bind-Value="Model.FirstName" For="@(() => Model.FirstName)" Label="First Name" Variant="Variant.Outlined"></MudTextField>
+                <MudTextField @bind-Value="Model.LastName" For="@(() => Model.LastName)" Label="Last Name" Variant="Variant.Outlined"></MudTextField>
+                <MudSelect T="string" ValueChanged="(value) => OnRoleChanged(value)" Label="Role" Variant="Variant.Outlined">
+                    <MudSelectItem Value=@("SuperAdmin")>Super Admin</MudSelectItem>
+                    <MudSelectItem Value=@("Admin")>Admin</MudSelectItem>
+                </MudSelect>
+                @if (IsSuperAdmin == false)
+                {
+                @if (Campuses != null)
+                {
+                    <MudSelect @bind-Value="Access" For="@(() => Model.Access)" Label="Access" Variant="Variant.Outlined">
+                        @foreach (var item in Campuses)
+                        {
+                            <MudSelectItem Value="@(item.Name)">@item.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                }
+                <MudTextField @bind-Value="Model.Username" For="@(() => Model.Username)" Label="User Name" Variant="Variant.Outlined"></MudTextField>
+                <MudTextField @bind-Value="Model.Password" For="@(() => Model.Password)" Label="Password" Variant="Variant.Outlined"></MudTextField>
+                <MudTextField @bind-Value="Model.ConfirmPassword" For="@(() => Model.ConfirmPassword)" Label="Passsword" Variant="Variant.Outlined"></MudTextField>
+
+            </DialogContent>
+            <DialogActions>
+                <LoadingButton Loading="loading" />
+                <MudButton OnClick="Cancel">Close</MudButton>
+            </DialogActions>
+        </MudDialog>
+    </EditForm>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+    string Role = "";
+    ICollection<Campus>? Campuses { get; set; }
+    User Model = new();
+    string Access = "";
+    string error { get; set; } = "";
+    private bool loading;
+    bool IsSuperAdmin = false;
+    string password;
+    
+    void Cancel() => Dialog?.Cancel();
+
+    async Task OnRoleChanged(string value)
+    {
+        Role = value;
+        if (Role == "SuperAdmin")
+        {
+            IsSuperAdmin = true;
+            Access = "All";
+            Campuses = null;
+        }
+        else
+        {
+            IsSuperAdmin = false;
+            Campuses = await CampusesConnect.GetCampusNoApplicant();
+
+        }
+
+
+    }
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Model.Username))
+            {
+                throw new InvalidOperationException($"Username must not contain white space");
+            }
+           
+            Model.Access = Access;
+            Model.Role = Role;         
+            
+            var model = await AuthsConnect.CreateAsync(Model);
+
+
+            Snackbar.Add($"{model.Username} has been added to list.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(model));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+          
+        }
+
+        loading = false;
+
+    }
+}

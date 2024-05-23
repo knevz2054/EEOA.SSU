@@ -1,0 +1,149 @@
+﻿@page "/schedules"
+@attribute [Authorize]
+@inject IScheduleService SchedulesConnect
+@inject IApplicantService ApplicantsConnect
+@inject IDialogService Dialog
+@inject IAuthService AuthConnect
+@inject ICampusService CampusesConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+<PageTitle>Schedules | SWDS</PageTitle>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+@if(Campuses != null)
+{
+    if(Campuses.Count() > 0)
+    {
+        <MudToolBar DisableGutters="true" WrapContent="true">
+            <MudCheckBox T="bool" ValueChanged="(value) => ViewNoAvailable(value)" Label="View No Available" Class="mud-button-like-checkbox" />
+            <MudSpacer />
+            <MudButton OnClick="OnScheduleCreateClick" Variant="Variant.Outlined" Color="Color.Primary" Class="ms-1">Create Schedule</MudButton>
+        </MudToolBar>
+    }
+
+    <MudTable SortLabel="Sort By" Items="@Schedules.OrderByDescending(s => s.ScheduleDate).ThenBy(s => s.Campus.Name)" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortBy="new Func<Schedule, object>(x => x.ScheduleDate)">Schedule Date</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<Schedule, object>(x => x.Campus.Name)">Campus</MudTableSortLabel></MudTh>
+            <MudTh>Slot</MudTh>
+            <MudTh>Available</MudTh>
+            <MudTh>Venue</MudTh>
+            <MudTh>Applicants</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Schedule Date">
+                <MudLink Href="@($"/schedules/{context.Id}")">@($"{context.ScheduleDate.ToString("MMMM dd, yyyy (dddd)")} {(context.Meridiem)}")</MudLink>
+            </MudTd>
+            <MudTd DataLabel="Campus">@context.Campus.Name</MudTd>
+            <MudTd DataLabel="Slot">@context.Slot</MudTd>
+            <MudTd DataLabel="Available">@context.Available</MudTd>
+            <MudTd DataLabel="Venue">@context.Venue</MudTd>
+            <MudTd DataLabel="Applicants">
+                <MudLink Href="@($"/schedules/{context.Id}/applicants")">@context.Applicants.Count(x => x.IsCompleted)</MudLink>
+            </MudTd>
+
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+        </PagerContent>
+    </MudTable>
+
+    <MudSwitch @bind-Value="@fixed_header">Fixed Header</MudSwitch>
+}
+
+
+
+@code {
+    bool fixed_header = true;
+    bool loading = false;
+
+    IEnumerable<Schedule>? Schedules { get; set; } = new List<Schedule>();
+    ICollection<Applicant>? Applicants { get; set; }
+    ICollection<Campus>? Campuses { get; set; }
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+
+        Applicants = await ApplicantsConnect.GetAllAsync();
+        Campuses = await CampusesConnect.GetAllAsync();
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        if (User.Access != "All")
+        {
+            var schedules = await SchedulesConnect.GetAllAsync();
+            Schedules = schedules.Where(x => x.Campus.Name == User.Access).ToList();
+        }
+        else
+        {
+            Schedules = await SchedulesConnect.GetAllAsync();
+        }
+
+        loading = false;
+    }
+
+    async Task OnScheduleCreateClick()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(SchedulesCreate.User), User);
+        var dialog = await Dialog.ShowAsync<SchedulesCreate>("Create Schedule", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            if(User != null)
+            {
+                if (User.Access != "All")
+                {
+                    var schedules = await SchedulesConnect.GetAllAsync();
+                    Schedules = schedules.Where(x => x.Campus.Name == User.Access).ToList();
+                }
+                else
+                {
+                    Schedules = await SchedulesConnect.GetAllAsync();
+                }
+            }
+        }        
+    }
+
+    async Task ViewNoAvailable(bool view)
+    {
+        if(view == true)
+        {
+            if (User.Access != "All")
+            {
+                var schedules = await SchedulesConnect.GetAllAsync();
+                Schedules = schedules.Where(x => x.Campus.Name == User.Access && x.Available == 0).ToList();
+            }
+            else
+            {
+                var schedules = await SchedulesConnect.GetAllAsync();
+                Schedules = schedules.Where(x => x.Available == 0).ToList();
+            }
+        }
+        else
+        {
+            if (User.Access != "All")
+            {
+                var schedules = await SchedulesConnect.GetAllAsync();
+                Schedules = schedules.Where(x => x.Campus.Name == User.Access).ToList();
+            }
+            else
+            {
+                Schedules = await SchedulesConnect.GetAllAsync();
+            }
+        }
+    }
+}

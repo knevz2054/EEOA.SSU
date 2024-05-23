@@ -1,0 +1,108 @@
+﻿@page "/courses"
+@attribute [Authorize]
+@inject ICourseService CoursesConnect
+@inject IDialogService Dialog
+@inject IAuthService AuthConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+<PageTitle>Courses | SWDS</PageTitle>
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+<MudToolBar DisableGutters="true" WrapContent="true">
+    <MudSpacer />
+    <MudButton OnClick="OnAddCourseClick" Variant="Variant.Outlined" Color="Color.Primary" Class="ms-1">Add Course</MudButton>
+</MudToolBar>
+<MudTable Items="@(Courses.OrderBy(x => x.Campus.Name).ThenBy(x => x.Name))" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")">
+    <HeaderContent>
+        <MudTh>Course Name</MudTh>
+        <MudTh>Flag</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Campus Name">
+            <MudLink Href="@($"/courses/{context.Id}")"> @($"{@context.Name} ({context.Campus.Name})")</MudLink>
+        </MudTd>
+        <MudTd DataLabel="Flag">
+            <MudSwitch T="bool" Value="context.IsFlag" ValueChanged="(value) => IsFlag(value, context)"></MudSwitch>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+    </PagerContent>
+</MudTable>
+
+<MudSwitch @bind-Checked="@fixed_header">Fixed Header</MudSwitch>
+
+@code {
+    bool fixed_header = true;
+    bool loading = false;
+    IEnumerable<Course>? Courses { get; set; } = new List<Course>();
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        if (User.Access != "All")
+        {
+            var courses = await CoursesConnect.GetAllAsync();
+            Courses = courses.Where(x => x.Campus.Name == User.Access).ToList();
+        }
+        else
+        {
+            Courses = await CoursesConnect.GetAllAsync();
+        }
+
+        loading = false;
+    }
+
+    async Task IsFlag(bool value, Course course)
+    {
+        course.IsFlag = value;
+        await CoursesConnect.UpdateAsync(course);
+        if (value = true)
+            Snackbar.Add($"{course.Name} has been flagged.", Severity.Success);
+        else
+            Snackbar.Add($"{course.Name} has been unflagged.", Severity.Success);
+
+    }
+
+    async Task OnAddCourseClick()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(CoursesCreate.User), User);
+        var dialog = await Dialog.ShowAsync<CoursesCreate>("Add Course", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (User != null)
+            {
+                if (User.Access != "All")
+                {
+                    var courses = await CoursesConnect.GetAllAsync();
+                    Courses = courses.Where(x => x.Campus.Name == User.Access).ToList();
+                }
+                else
+                {
+                    Courses = await CoursesConnect.GetAllAsync();
+                }
+            }
+
+        }
+    }
+}

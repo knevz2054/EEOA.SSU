@@ -1,0 +1,29 @@
+﻿@if (Model != null)
+{
+    <MudSimpleTable Elevation="0" Class="details mb-10">
+        <tbody>
+            <tr>
+                <td style="width: 200px;">Name</td>
+                <td>@($"{Model.FirstName} {Model.LastName}")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Username</td>
+                <td>@Model.Username</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Role</td>
+                <td>@Model.Role</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Access</td>
+                <td>@Model.Access</td>
+            </tr>
+          
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter]
+    public User? Model { get; set; }
+}

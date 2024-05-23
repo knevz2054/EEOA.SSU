@@ -1,0 +1,74 @@
+﻿@inject ISnackbar Snackbar
+@inject IApplicantService ApplicantsConnect
+@inject ILogService LogService
+@inject NavigationManager Navigation
+
+<EditForm OnValidSubmit="Submit" Model="Model">
+    <DataAnnotationsValidator />
+    <MudTextField  @bind-Value="Model.ControlNo" For="@(() => Model.ControlNo)" Label="Control No." Variant="Variant.Outlined"></MudTextField>
+    <MudTextField  @bind-Value="Model.GWA" For="@(() => Model.GWA)" Label="GWA" Variant="Variant.Outlined"></MudTextField>
+  
+    <div class="d-flex justify-end mt-3">
+        <LoadingButton Loading="loading" Label="Update" Variant="Variant.Filled" />
+    </div>
+
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public EventCallback<Applicant> OnUpdated { get; set; }
+
+    [Parameter]
+    public Applicant? Model { get; set; }
+
+    [Parameter]
+    public User? User { get; set; }
+
+
+    bool loading = false;
+    string error = "";
+
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if (Model != null)
+            {
+                var model = await ApplicantsConnect.UpdateAsync(Model);
+
+                if (User != null)
+                {
+                    Log log = new Log
+                        {
+                            Process = $"Applicant: {Model.PersonalInformation.LastName} {Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0, 1)}. details has been updated by {User.FirstName} {User.LastName}",
+                            Date = DateTime.Now,
+                            UserId = User.Id
+                        };
+                    await LogService.CreateAsync(log);
+                }
+                if (Model.ReadingRawScore == null && Model.MathRawScore == null && model.ScienceRawScore == null && model.IntelligenceRawScore == null)
+                {
+                    Model.IsExamined = false;
+                    await ApplicantsConnect.UpdateAsync(Model);
+                }
+
+                Snackbar.Add($"Update Successful", Severity.Success);
+                Navigation.NavigateTo($"/applicants/{Model.Id}");
+            }
+
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        loading = false;
+    }
+}

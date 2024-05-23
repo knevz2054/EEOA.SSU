@@ -1,0 +1,76 @@
+﻿@inject ISnackbar Snackbar
+@inject IDepartmentService DepartmentsConnect
+@inject ICampusService CampusesConnect
+
+@if (Campuses != null)
+{
+    <EditForm OnValidSubmit="Submit" Model="Model">
+        <MudDialog>
+            <DialogContent>
+                <DataAnnotationsValidator />
+                <MudSelect @bind-Value="Model.CampusId" For="@(() => Model.CampusId)" Label="Select Campus" Variant="Variant.Outlined">
+                    <MudSelectItem Value="Guid.Empty">Select Campus</MudSelectItem>
+                    @foreach (var campus in Campuses.Where(d => d.HasDepartment == true))
+                    {                        
+                        <MudSelectItem Value="@(campus.Id)">@campus.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="Model.Name" For="@(() => Model.Name)" Label="Department Name" Variant="Variant.Outlined"></MudTextField>
+            </DialogContent>
+            <DialogActions>
+                <LoadingButton Loading="loading" />
+                <MudButton OnClick="Cancel">Close</MudButton>
+            </DialogActions>
+        </MudDialog>
+    </EditForm>
+}
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+   
+    Department Model = new();
+    [Parameter]
+    public Campus? Campus { get; set; }
+    [Parameter]
+    public User User { get; set; }
+
+    ICollection<Campus>? Campuses { get; set; }
+   
+    string error { get; set; } = "";
+    private bool loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Campuses = await CampusesConnect.GetCampusNoApplicant();
+    }
+
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            Model.DateCreated = DateTime.Now;
+            Model.CreatedBy = $"{User.FirstName} {User.LastName}";
+            Model.UpdatedBy = $"{User.FirstName} {User.LastName}";
+            Model.DateUpdated = DateTime.Now;
+
+            var model = await DepartmentsConnect.CreateAsync(Model);
+
+            Snackbar.Add($"{model.Name} has been added to list.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(model));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loading = false;
+
+    }
+}

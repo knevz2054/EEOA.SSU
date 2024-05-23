@@ -1,0 +1,79 @@
+﻿@page "/departments"
+@attribute [Authorize]
+@inject IDepartmentService DepartmentsConnect
+@inject IDialogService Dialog
+@inject IAuthService AuthConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+<PageTitle>Departments | SWDS</PageTitle>
+
+
+@if (loading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+<MudToolBar DisableGutters="true" WrapContent="true">
+    <MudSpacer />
+    <MudButton OnClick="OnAddDepartmentClick" Variant="Variant.Outlined" Color="Color.Primary" Class="ms-1">Add Department</MudButton>
+</MudToolBar>
+<MudTable Items="@(Departments.OrderBy(x => x.Campus.Name).ThenBy(x => x.Name))" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")">
+    <HeaderContent>
+        <MudTh>Department Name</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Department Name">
+            <MudLink Href="@($"/departments/{context.Id}")">@($"{@context.Name} ({context.Campus.Name})")</MudLink>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+    </PagerContent>
+</MudTable>
+
+<MudSwitch @bind-Value="@fixed_header">Fixed Header</MudSwitch>
+
+@code {
+    bool fixed_header = true;
+    bool loading = false;
+    IEnumerable<Department>? Departments { get; set; } = new List<Department>();
+
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+
+        if (User.Access != "All")
+        {
+            var departments = await DepartmentsConnect.GetAllAsync();
+            Departments = departments.Where(x => x.Campus.Name == User.Access).ToList();
+        }
+        else
+        {
+            Departments = await DepartmentsConnect.GetAllAsync();
+        }
+
+        loading = false;
+    }
+
+    async Task OnAddDepartmentClick()
+    {   
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(DepartmentsCreate.User), User);
+        var dialog = await Dialog.ShowAsync<DepartmentsCreate>("Add Department", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+            Departments = await DepartmentsConnect.GetAllAsync();
+    }
+}

@@ -1,0 +1,114 @@
+﻿@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject IScheduleService SchedulesConnect
+@inject ICampusService CampusesConnect
+@inject IApplicantService ApplicantsConnect
+@inject ILogService LogsConnect
+@inject IAuthService AuthConnect
+@inject IDialogService dialog
+@inject NavigationManager Navigation
+
+
+@if (Schedules != null)
+{
+    <MudTable SortLabel="Sort By" Items="@Schedules.OrderByDescending(s => s.ScheduleDate).ThenBy(s => s.Campus.Name)" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortBy="new Func<Schedule, object>(x => x.ScheduleDate)">Schedule Date</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<Schedule, object>(x => x.Campus.Name)">Campus</MudTableSortLabel></MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Schedule Date">
+                @($"{context.ScheduleDate.ToString("MMMM dd, yyyy (dddd)")} {(context.Meridiem)}")
+            </MudTd>
+            <MudTd DataLabel="Campus">@context.Campus.Name</MudTd>
+            <MudTd>
+                <MudButton OnClick="value => MoveTo(context)" Variant="Variant.Filled" Color="Color.Warning" Class="ms-1">Transfer</MudButton>
+            </MudTd>
+        </RowTemplate>
+
+
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+        </PagerContent>
+    </MudTable>
+
+    <MudSwitch @bind-Value="@fixed_header">Fixed Header</MudSwitch>
+}
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public EventCallback<Applicant> OnUpdated { get; set; }
+
+    [Parameter]
+    public Applicant? Model { get; set; }
+
+
+    [Parameter]
+    public User User { get; set; }
+
+    IEnumerable<Schedule>? Schedules { get; set; } = new List<Schedule>();
+
+
+    bool fixed_header = true;
+    string error { get; set; } = "";
+    private bool loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+
+
+        if (User.Access != "All")
+        {
+            var schedules = await SchedulesConnect.GetSchedules();
+            Schedules = schedules.Where(x => x.Campus.Name == User.Access).ToList();
+        }
+        else
+        {
+            Schedules = await SchedulesConnect.GetSchedules();
+        }
+
+        loading = false;
+    }
+
+    void Cancel() => Dialog?.Cancel();
+
+
+
+    async Task MoveTo(Schedule schedule)
+    {      
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(ApplicantsApplicationDetailsUpdate.Schedule), schedule);
+        parameters.Add(nameof(ApplicantsApplicationDetailsUpdate.Model), Model);
+        parameters.Add(nameof(ApplicantsApplicationDetailsUpdate.FromCampus), Model.Schedule.Campus.Name);
+        parameters.Add(nameof(ApplicantsApplicationDetailsUpdate.FromProgram), Model.CourseName);
+        parameters.Add(nameof(ApplicantsApplicationDetailsUpdate.User), User);
+
+        var modal = await dialog.ShowAsync<ApplicantsApplicationDetailsUpdate>($"Transfer Applicant to {schedule.Campus.Name}", parameters);
+        var result = await modal.Result;
+
+        if (!result.Canceled)
+        {
+            if (User != null)
+            {               
+                Log log = new Log
+                    {
+                        Process = $"{Model.PersonalInformation.FirstName} {Model.PersonalInformation.MiddleName.Substring(0, 1)}. {Model.PersonalInformation.LastName} has been transferred to {schedule.Campus.Name} by {User.FirstName} {User.LastName}",
+                        Date = DateTime.Now,
+                        UserId = User.Id
+                    };
+                await LogsConnect.CreateAsync(log);
+            }
+            Model = await ApplicantsConnect.GetAsync(Model.Id);
+            await OnUpdated.InvokeAsync(Model);
+            Navigation.NavigateTo($"/applicants/{Model.Id}");
+        }
+       
+
+    }
+}

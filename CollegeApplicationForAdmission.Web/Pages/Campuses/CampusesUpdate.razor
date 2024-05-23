@@ -1,0 +1,60 @@
+﻿@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IAuthService AuthConnect
+@inject ICampusService CampusesConnect
+@inject NavigationManager Navigation
+
+@if (Model != null)
+{
+    <EditForm OnValidSubmit="Submit" Model="Model">
+        <DataAnnotationsValidator />
+        <MudText Color="@Color.Error">@error</MudText>
+        <MudTextField @bind-Value="@Model.Name" For="@(() => Model.Name)" Label="Name" Variant="Variant.Outlined"></MudTextField>
+        <MudTextField @bind-Value="@Model.Address" For="@(() => Model.Address)" Label="Address" Variant="Variant.Outlined"></MudTextField>
+        <div class="d-flex justify-end mt-3">
+            <LoadingButton Loading="loading" Label="Update" Variant="Variant.Filled" />
+        </div>
+    </EditForm>
+}
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public EventCallback<Campus> OnUpdated { get; set; }
+
+    [Parameter]
+    public Campus? Model { get; set; }
+
+    [Parameter]
+    public User User { get; set; }
+
+    string error { get; set; } = "";
+    private bool loading;
+
+    void Cancel() => Dialog?.Cancel();
+       
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            Model.UpdatedBy = $"{User.FirstName} {User.LastName}";
+            Model.DateUpdated = DateTime.Now;
+
+            var model = await CampusesConnect.UpdateAsync(Model);
+            Snackbar.Add("Update Successful.", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(model));
+            Navigation.NavigateTo("/campuses");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loading = false;
+
+    }
+}

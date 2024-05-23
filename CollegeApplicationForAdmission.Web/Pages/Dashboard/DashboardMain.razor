@@ -1,0 +1,354 @@
+﻿@inject ICourseService CoursesConnect
+@inject IDepartmentService DepartmentsConnect
+@inject ICampusService CampusesConnect
+
+
+<MudText Typo="Typo.h3" Class="text-center font-weight-bold">Main Campus</MudText>
+<MudContainer Class="mt-16 px-2 px-sm-8" MaxWidth="MaxWidth.False">
+    <!-- Top Department -->
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: auto;">
+                <MudText Typo="Typo.h6">Popular Departments</MudText>
+                <MudPaper Class="pa-4">
+                    <MudChart ChartType="ChartType.Pie" InputData="@dataDepartment" @bind-SelectedIndex="index" InputLabels="@labelsDepartment" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Top 5 Program Preference -->
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: auto;">
+                <MudText Typo="Typo.h6">Top 5 Program Preference</MudText>
+                <MudPaper Class="pa-4">
+                    <MudChart ChartType="ChartType.Pie" InputData="@dataProgram" @bind-SelectedIndex="index" InputLabels="@labelsProgram" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+
+    <!-- Department -->
+    @if (Departments != null)
+    {
+        <MudGrid>
+            <MudItem xs="12">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: auto;">
+                    <MudText Typo="Typo.h6">Departments</MudText>
+
+
+                    @* <div style="overflow-y: auto; max-height: calc(100vh - 300px);">
+                <MudTreeView Items="@Department">
+                <ItemTemplate>
+                @{
+                var departmentName = context; // Accessing the department name directly
+
+                // Filter the applicants based on the courses offered by the current department
+                var departmentCourses = Departments.First(department =>
+                department.Name == departmentName).Courses;
+
+                int applicantCount = Applicants.Count(applicant =>
+                departmentCourses.Any(course =>
+                applicant.CourseName == course.Name));
+                }
+
+                <MudTreeViewItem Value="@departmentName" Expanded>
+                <div style="display: flex; flex-direction: column;">
+                <div style="margin-bottom: 5px;">
+                <MudText Typo="Typo.caption">Total Applicants: @applicantCount</MudText>
+                </div>
+                <!-- You can add other department details here -->
+                </div>
+                </MudTreeViewItem>
+                </ItemTemplate>
+                </MudTreeView>
+                </div> *@
+
+
+                    <div style="overflow-y: auto; max-height: calc(100vh - 300px);">
+                        <MudTreeView Items="@Department">
+                            <ItemTemplate>
+                                @{
+                                    var departmentName = context; // Accessing the department name directly
+
+                                    // Filter the applicants based on the courses offered by the current department
+                                    var departmentCourses = Departments.First(department =>
+                                    department.Name == departmentName).Courses;
+
+                                    // int applicantCount = Applicants.Count(applicant =>
+                                    // departmentCourses.Any(course =>
+                                    // applicant.CourseName == course.Name));
+                                    int applicantCount = Applicants.Count(applicant =>
+                                    applicant.Schedule.Campus.Name == "Main Campus" && // Filter by campus name
+                                    departmentCourses.Any(course =>
+                                    applicant.CourseName == course.Name));
+
+
+                                    double totalApplicantsCount = Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus");
+
+                                    double percentage = totalApplicantsCount > 0 ? Math.Round((applicantCount / totalApplicantsCount) * 100, 2) : 0;
+                                }
+
+                                <MudTreeViewItem Value="@departmentName" Expanded>
+                                    <div style="display: flex; flex-direction: column;">
+                                        <div style="margin-bottom: 5px;">
+                                            <MudText Typo="Typo.caption">Total: @applicantCount</MudText>
+                                        </div>
+                                        <div style="margin-bottom: 5px;">
+                                            <MudText Typo="Typo.caption">Percentage: @percentage%</MudText>
+                                        </div>
+                                        <!-- You can add other department details here -->
+                                    </div>
+                                </MudTreeViewItem>
+                            </ItemTemplate>
+                        </MudTreeView>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+
+
+    <!-- Program Preference -->
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: auto;">
+                <MudText Typo="Typo.h6">Program Preference</MudText>
+                <div style="overflow-y: auto; max-height: calc(100vh - 300px);">
+                    <MudTreeView Items="@ProgramPreference">
+                        <ItemTemplate>
+                            @{
+                                int totalCount = Applicants != null ?
+                                Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus" && x.CourseName == context) :
+                                0;
+
+                                double percentage = 0.0;
+                                if (Applicants != null && Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus") > 0)
+                                {
+                                    int statusCount = Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus" && x.CourseName == context);
+                                    percentage = Math.Round((double)statusCount / Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus") * 100, 2);
+                                }
+                            }
+                            <MudTreeViewItem Value="@context" Expanded>
+                                <div style="display: flex; flex-direction: column;">
+                                    <div style="margin-bottom: 5px;">
+                                        <MudText Typo="Typo.caption">Total: @totalCount</MudText>
+                                    </div>
+                                    <div style="margin-bottom: 5px;">
+                                        <MudText Typo="Typo.caption">Percentage: @percentage%</MudText>
+                                    </div>
+                                </div>
+                            </MudTreeViewItem>
+                        </ItemTemplate>
+                    </MudTreeView>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Applicants Status -->
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: auto;">
+                <MudText Typo="Typo.h6">Applicants Status</MudText>
+                <div style="overflow-y: auto; max-height: calc(100vh - 300px);">
+                    <MudTreeView Items="@Statuses">
+                        <ItemTemplate>
+                            @{
+                                int totalCount = Applicants != null ?
+                                Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus" && x.ApplicantStatus == context) :
+                                0;
+
+                                double percentage = 0.0;
+                                if (Applicants != null && Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus") > 0)
+                                {
+                                    int statusCount = Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus" && x.ApplicantStatus == context);
+                                    percentage = Math.Round((double)statusCount / Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus") * 100, 2);
+                                }
+                            }
+                            <MudTreeViewItem Value="@context" Expanded>
+                                <div style="display: flex; flex-direction: column;">
+                                    <div style="margin-bottom: 5px;">
+                                        <MudText Typo="Typo.caption">Total: @totalCount</MudText>
+                                    </div>
+                                    <div style="margin-bottom: 5px;">
+                                        <MudText Typo="Typo.caption">Percentage: @percentage%</MudText>
+                                    </div>
+                                </div>
+                            </MudTreeViewItem>
+                        </ItemTemplate>
+                    </MudTreeView>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Demographic by Sex -->
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: auto;">
+                <MudText Typo="Typo.h6">Demographic by Sex</MudText>
+                <div style="overflow-y: auto; max-height: calc(100vh - 300px);">
+                    <MudTreeView Items="@Sex">
+                        <ItemTemplate>
+                            @{
+                                int totalCount = Applicants != null ?
+                                Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus" && x.PersonalInformation.Sex == context) :
+                                0;
+
+                                double percentage = 0.0;
+                                if (Applicants != null && Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus") > 0)
+                                {
+                                    int statusCount = Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus" && x.PersonalInformation.Sex == context);
+                                    percentage = Math.Round((double)statusCount / Applicants.Count(x => x.Schedule.Campus.Name == "Main Campus") * 100, 2);
+                                }
+                            }
+                            <MudTreeViewItem Value="@context" Expanded>
+                                <div style="display: flex; flex-direction: column;">
+                                    <div style="margin-bottom: 5px;">
+                                        <MudText Typo="Typo.caption">Total: @totalCount</MudText>
+                                    </div>
+                                    <div style="margin-bottom: 5px;">
+                                        <MudText Typo="Typo.caption">Percentage: @percentage%</MudText>
+                                    </div>
+                                </div>
+                            </MudTreeViewItem>
+                        </ItemTemplate>
+                    </MudTreeView>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+
+
+
+@code {
+    [Parameter]
+    public ICollection<Applicant>? Applicants { get; set; }
+    int dataSizeProgram = 5;
+    int index = -1;
+    double[]? dataProgram;
+    string[]? labelsProgram;
+    double[]? dataDepartment;
+    string[]? labelsDepartment;
+    HashSet<string>? Statuses { get; set; }
+    HashSet<string>? Sex { get; set; }
+    HashSet<string>? ProgramPreference { get; set; }
+    HashSet<string>? Department { get; set; }
+    ICollection<Department>? Departments { get; set; }
+
+    // ICollection<Course> Courses { get; set; }
+    protected async override Task OnInitializedAsync()
+    {
+        Statuses = Enum.GetValues(typeof(StudenStatus))
+                       .Cast<StudenStatus>()
+                       .Select(status => status.ToFriendlyName())
+                       .ToHashSet();
+
+        Sex = Enum.GetValues(typeof(Sex))
+                       .Cast<Sex>()
+                       .Select(status => status.ToFriendlyName())
+                       .ToHashSet();
+
+        ProgramPreference = Applicants
+                       .Where(x => x.Schedule.Campus.Name == "Main Campus")
+                       .GroupBy(x => x.CourseName)
+                       .Select(group => new { CourseName = group.Key, Count = group.Count() })
+                       .OrderByDescending(item => item.Count)
+                       .Select(item => item.CourseName)
+                       .ToHashSet();
+        dataProgram = Applicants
+                        .Where(x => x.Schedule.Campus.Name == "Main Campus")
+                        .GroupBy(x => x.CourseName)
+                        .Select(group => new { CourseName = group.Key, Count = group.Count() })
+                        .OrderByDescending(item => item.Count)
+                        .Select(item => (double)item.Count) // Select the count values
+                        .Take(5)
+                        .ToArray();
+
+        labelsProgram = Applicants
+                       .Where(x => x.Schedule.Campus.Name == "Main Campus")
+                       .GroupBy(x => x.CourseName)
+                       .Select(group => new { CourseName = group.Key, Count = group.Count() })
+                       .OrderByDescending(item => item.Count)
+                       .Select(item => item.CourseName) // Select the course names
+                       .Take(5)
+                       .ToArray();
+
+        Departments = await DepartmentsConnect.GetAllAsync();
+        if (Departments != null)
+        {
+            // var departmentData = Departments.Select(department => new
+            // {
+            //     DepartmentName = department.Name,
+            //     ApplicantCount = Applicants.Count(applicant =>
+            //         department.Courses.Any(course =>
+            //             applicant.CourseName == course.Name)),
+            //     TotalApplicantsCount = Applicants.Count()
+            // }).OrderByDescending(data => data.ApplicantCount).Select(data => data.DepartmentName).ToHashSet();
+
+            // Department = departmentData;
+            var departmentData = Departments.Select(department => new
+            {
+                DepartmentName = department.Name,
+                ApplicantCount = Applicants.Count(applicant =>
+                    applicant.Schedule.Campus.Name == "Main Campus" && // Filter by campus name
+                    department.Courses.Any(course =>
+                        applicant.CourseName == course.Name)),
+                TotalApplicantsCount = Applicants.Count()
+            }).OrderByDescending(data => data.ApplicantCount).Select(data => data.DepartmentName).ToHashSet();
+
+            Department = departmentData;
+        }
+
+        dataDepartment = Departments
+                    .Select(department =>
+                        (double)Applicants.Count(applicant =>
+                            applicant.Schedule.Campus.Name == "Main Campus" && // Filter by campus name
+                            department.Courses.Any(course =>
+                                applicant.CourseName == course.Name)))
+                    .OrderByDescending(count => count)
+                    .ToArray();
+
+        labelsDepartment = Departments
+                    .OrderByDescending(department =>
+                        (double)Applicants.Count(applicant =>
+                            applicant.Schedule.Campus.Name == "Main Campus" && // Filter by campus name
+                            department.Courses.Any(course =>
+                                applicant.CourseName == course.Name)))
+                    .Select(department => department.Name)
+                    .ToArray();
+
+        // labelsDepartment = Departments
+        //                     .OrderByDescending(department =>
+        //                         Applicants.Count(applicant =>
+        //                             applicant.Schedule.Campus.Name == "Main Campus" && // Filter by campus name
+        //                             department.Courses.Any(course =>
+        //                                 applicant.CourseName == course.Name)))
+        //                     .Select(department => department.Name)
+        //                     .ToArray();
+
+        // dataDepartment = Departments
+        //              .Select(department =>
+        //                  (double)Applicants.Count(applicant =>
+        //                      department.Courses.Any(course =>
+        //                          applicant.CourseName == course.Name)))
+        //              .OrderByDescending(count => count)
+        //              .ToArray();
+
+        // labelsDepartment = Departments
+        //                     .OrderByDescending(department =>
+        //                         Applicants.Count(applicant =>
+        //                             department.Courses.Any(course =>
+        //                                 applicant.CourseName == course.Name)))
+        //                     .Select(department => department.Name)
+        //                     .ToArray();
+       
+    }
+
+
+}

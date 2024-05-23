@@ -1,0 +1,18 @@
+﻿@inherits LayoutComponentBase
+@inject IDialogService DialogService
+<MudThemeProvider Theme="theme" />
+<MudSnackbarProvider />
+<MudDialogProvider MaxWidth="MaxWidth.Small" FullWidth="true" CloseButton="true" CloseOnEscapeKey="true" />
+<main>@Body</main>
+
+@code {
+    MudTheme theme = new MudTheme()
+        {
+            Typography = new Typography()
+            {
+                H1 = new() { FontWeight = 100, FontSize = "48px" },
+                H3 = new() { FontWeight = 100 },
+                H6 = new() { FontWeight = 100 },
+            }
+        };
+}

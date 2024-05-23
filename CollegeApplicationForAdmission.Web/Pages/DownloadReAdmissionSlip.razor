@@ -1,0 +1,55 @@
+﻿@page "/downloadreadmissionslip/{fileName}"
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment WebHostEnvironment
+@inject NavigationManager Navigate
+@attribute [Authorize]
+
+<MudToolBar DisableGutters="true" WrapContent="true">
+    <MudSpacer />
+    <MudButtonGroup Variant="Variant.Outlined">
+        <MudButton Href="/schedules" StartIcon="@Icons.Material.Filled.ChevronLeft" Variant="Variant.Outlined" Size="Size.Small">
+            <MudText Color="Color.Default">Schedules</MudText>
+        </MudButton>
+
+    </MudButtonGroup>
+</MudToolBar>
+@* <a href="/ApplicantData.docx" download="@FileName"></a>
+ *@
+
+<MudSimpleTable>
+    <thead>
+        <tr>
+            <td>File</td>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+                <MudLink Href="/ReAdmissionSlip.docx" download="@FileName">@($"Download  {FileName}.docx")</MudLink>
+            </td>
+        </tr>
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    [Parameter]
+    public string FileName { get; set; }
+
+    protected override void OnInitialized()
+    {
+        FileName = GetFileNameFromQueryParameters() ?? "ReAdmissionSlip.docx";
+    }
+
+    private string GetFileNameFromQueryParameters()
+    {
+        var uri = new Uri(Navigate.Uri);
+        var query = uri.Query;
+
+        if (!string.IsNullOrEmpty(query))
+        {
+            var queryParams = System.Web.HttpUtility.ParseQueryString(query);
+            return queryParams["applicantName"];
+        }
+
+        return null;
+    }
+}

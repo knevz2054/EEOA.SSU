@@ -1,0 +1,39 @@
+﻿@if (Model != null)
+{
+    <MudSimpleTable Elevation="0" Class="details mb-10">
+        <tbody>
+            <tr>
+                <td style="width: 200px;">Name</td>
+                <td>@Model.Name</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Campus</td>
+                <td>@Model.Campus.Name</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Courses</td>
+                <td>@(Model.Courses != null ? string.Join(", ", Model.Courses.Select(c => c.Name)) : "")</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Created By</td>
+                <td>@Model.CreatedBy</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Created Date</td>
+                <td>@Model.DateCreated</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Updated By</td>
+                <td>@Model.UpdatedBy</td>
+            </tr>
+            <tr>
+                <td style="width: 200px;">Updated Date</td>
+                <td>@Model.DateUpdated</td>
+            </tr>
+        </tbody>
+    </MudSimpleTable>
+}
+@code {
+    [Parameter]
+    public Department? Model { get; set; }
+}

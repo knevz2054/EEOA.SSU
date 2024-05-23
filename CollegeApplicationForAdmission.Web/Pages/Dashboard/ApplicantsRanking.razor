@@ -1,0 +1,240 @@
+﻿@page "/rankings"
+@attribute [Authorize]
+@inject IApplicantService ApplicantsConnect
+@inject IDepartmentService DepartmentsConnect
+@inject ICourseService CoursesConnect
+@inject IAuthService AuthConnect
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IJSRuntime JsRuntime
+@using OfficeOpenXml;
+@using System.IO;
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env
+<PageTitle>Applicants | SWDS</PageTitle>
+
+
+@if (Courses != null)
+{
+    <MudToolBar DisableGutters="true" WrapContent="true">
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="Course" ValueChanged="(value) => ProgramValueChanged(value)" Label="Ranking by Program" Variant="Variant.Text" AnchorOrigin="Origin.BottomCenter">
+                @foreach (var course in Courses)
+                {
+                    <MudSelectItem Value="@(course)">
+                        <MudText Typo="Typo.caption">@course.Name (@course.Campus.Name)</MudText>
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudSpacer />
+        @if (Applicants.Count() > 0)
+        {
+            <MudButton StartIcon="@Icons.Material.Filled.Download" OnClick="DownloadFile" Variant="Variant.Filled" Color="Color.Success">
+                <MudText>Download</MudText>
+            </MudButton>
+        }
+
+    </MudToolBar>
+}
+
+<MudDataGrid Loading="loading" RowStyle="height: 15px" RowClass="my-row-class " HeaderClass="my-header-class" T="Applicant" Items="@Applicants.OrderByDescending(ma => ma.OverallTotalRating())" ColumnResizeMode="@(_resizeColumn ? ResizeMode.Column : ResizeMode.Container)" RowsPerPage="10">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">List of Students</MudText>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.PersonalInformation.LastName" Title="Applicant's Name">
+            <CellTemplate>
+                @($"{context.Item.PersonalInformation.LastName}, {context.Item.PersonalInformation.FirstName} {context.Item.PersonalInformation.MiddleName.Substring(0, 1)}.")
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.ApplicantStatus" Title="Student Status">
+            <CellTemplate>
+                @context.Item.ApplicantStatus
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.CourseName" Title="Program">
+            <CellTemplate>
+                @context.Item.CourseName
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.TotalRating()" Title="Entrance Exam">
+            <CellTemplate>
+                @($"{context.Item.TotalRating():F2}")
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.InterviewTotalPercentage()" Title="Interview">
+            <CellTemplate>
+                @($"{context.Item.InterviewTotalPercentage():F2}")
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.OverallTotalRating()" Title="Over All Total">
+            <CellTemplate>
+                @($"{context.Item.OverallTotalRating():F2}")
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.Remarks()" Title="Remarks">
+            <CellTemplate>
+                @($"{context.Item.Remarks()} ")
+            </CellTemplate>
+        </PropertyColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="Applicant" PageSizeOptions=@(new int[] {10, 20, Applicants.Count()}) />
+    </PagerContent>
+</MudDataGrid>
+<style>
+    .my-header-class .mud-table-cell {
+        font-size: .7rem;
+    }
+
+    .my-row-class .mud-table-cell {
+        font-size: .6rem;
+    }
+</style>
+
+@code {
+    bool loading = false;
+    private bool _resizeColumn;
+    int rank = 0;
+    IEnumerable<Applicant>? Applicants { get; set; } = new List<Applicant>();
+    IEnumerable<Department>? Departments { get; set; }
+    IEnumerable<Course>? Courses { get; set; }
+    string? result { get; set; }
+    Course? Course { get; set; }
+    ClaimsPrincipal? user { get; set; }
+    User? User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        rank = 0;
+        Departments = await DepartmentsConnect.GetAllAsync();
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        user = authState.User;
+        var userIdClaim = user.FindFirst("Id");
+        if (userIdClaim != null)
+        {
+            User = await AuthConnect.GetAsync(Guid.Parse(userIdClaim.Value));
+        }
+        if (User.Access != "All")
+        {
+            // var applicants = await ApplicantsConnect.GetAllAsync();
+            // Applicants = applicants.Where(x => x.Schedule.Campus.Name == User.Access && x.IsCompleted && x.Remarks() != string.Empty).ToList();
+            var courses = await CoursesConnect.GetAllAsync();
+            Courses = courses.Where(x => x.Campus.Name == User.Access);
+
+        }
+        else
+        {
+            // var applicants = await ApplicantsConnect.GetAllAsync();
+            // Applicants = applicants.Where(x => x.IsCompleted && x.Remarks() != string.Empty).ToList();
+            Courses = await CoursesConnect.GetAllAsync();
+        }
+
+        loading = false;
+    }
+
+    async Task ProgramValueChanged(Course course)
+    {
+        loading = true;
+        Course = course;
+        rank = 0;
+        if (User.Access != "All")
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => x.Schedule.Campus.Name == User.Access && x.IsCompleted && x.Remarks() == "Passed" && x.CourseName == course.Name).ToList();
+
+
+        }
+        else
+        {
+            var applicants = await ApplicantsConnect.GetAllAsync();
+            Applicants = applicants.Where(x => x.IsCompleted && x.Remarks() == "Passed" && x.Schedule.Campus.Name == course.Campus.Name && x.CourseName == course.Name).ToList();
+        }
+
+        loading = false;
+    }
+
+    async Task DownloadFile()
+    {
+
+        loading = true;
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        // Check if there are any applicants to export
+        if (Applicants == null || !Applicants.Any())
+        {
+            Snackbar.Add("No data to export.", Severity.Error);
+            return;
+        }
+
+        // Load the existing Excel file as a template
+        var templateFilePath = "Ranking.xlsx"; // Update with your template file path
+        var fileInfo = new FileInfo(Path.Combine("wwwroot", templateFilePath));
+
+        if (!fileInfo.Exists)
+        {
+            Snackbar.Add("Template file not found.", Severity.Error);
+            return;
+        }
+
+        // Create a new Excel package from the template file
+        using (var existingPackage = new ExcelPackage(fileInfo))
+        {
+            // Get the worksheet from the existing Excel file
+            var worksheet = existingPackage.Workbook.Worksheets["Sheet1"];
+
+            // Populate data rows starting from row 9 (assuming headers are in row 8)
+            var sortedApplicants = Applicants.OrderBy(x => x.PersonalInformation.LastName);
+            int rowIndex = 5;
+
+            foreach (var applicant in Applicants)
+            {
+                // Populate applicant information into the worksheet
+                worksheet.Cells[rowIndex, 2].Value = $"{applicant.PersonalInformation.LastName}, {applicant.PersonalInformation.FirstName} {applicant.PersonalInformation.MiddleName.Substring(0, 1)}.";
+                worksheet.Cells[rowIndex, 3].Value = $"{applicant.Schedule.Campus.Name}";
+
+                worksheet.Cells[rowIndex, 4].Value = Departments
+                                            .Where(x => x.Courses.Select(x => x.Name).Contains(applicant.CourseName)).Where(xx => xx.Campus.Name == applicant.Schedule.Campus.Name)
+                                            .Select(x => x.Name)
+                                            .FirstOrDefault();
+                worksheet.Cells[rowIndex, 5].Value = $"{applicant.CourseName}";
+                worksheet.Cells[rowIndex, 6].Value = $"{applicant.ApplicantStatus}";
+                worksheet.Cells[rowIndex, 7].Value = $"{applicant.PersonalInformation.ContactNumber}";
+                worksheet.Cells[rowIndex, 8].Value = $"{applicant.EducationalBackground.Track}";
+                worksheet.Cells[rowIndex, 9].Value = $"{applicant.ReadingEquivalent():F2}";
+                worksheet.Cells[rowIndex, 10].Value = $"{applicant.MathEquivalent():F2}";
+                worksheet.Cells[rowIndex, 11].Value = $"{applicant.ScienceEquivalent():F2}";
+                worksheet.Cells[rowIndex, 12].Value = $"{applicant.TotalAchievement():F2}";
+                worksheet.Cells[rowIndex, 13].Value = $"{applicant.IntelligenceEquivalent():F2}";
+                worksheet.Cells[rowIndex, 14].Value = $"{applicant.TotalAchievementIntelligence():F2}";
+                worksheet.Cells[rowIndex, 15].Value = $"{applicant.TotalRating():F2}";
+                worksheet.Cells[rowIndex, 16].Value = $"{applicant.GWA}";
+                worksheet.Cells[rowIndex, 17].Value = $"{applicant.GWAPercentage():F2}";
+                worksheet.Cells[rowIndex, 18].Value = $"{applicant.InterviewReading}";
+                worksheet.Cells[rowIndex, 19].Value = $"{applicant.InterviewCommunication}";
+                worksheet.Cells[rowIndex, 20].Value = $"{applicant.InterviewAnalytical}";
+                worksheet.Cells[rowIndex, 21].Value = $"{applicant.InterViewTotal():F2}";
+                worksheet.Cells[rowIndex, 22].Value = $"{applicant.InterviewRCAPercentage():F2}";
+                worksheet.Cells[rowIndex, 23].Value = $"{applicant.InterviewTotalPercentage():F2}";
+                worksheet.Cells[rowIndex, 24].Value = $"{applicant.OverallTotalRating():F2}";
+                worksheet.Cells[rowIndex, 25].Value = $"{applicant.Remarks()}";
+
+                // Increment row index for the next applicant
+                rowIndex++;
+            }
+
+            // Generate a unique file name for the updated Excel file
+            string fileName = $"Applicants Ranking Summary  ({Course.Name} - {Course.Campus.Name}) {DateTime.Now:yyyy-MM-dd}.xlsx";
+            // Save the updated Excel file to a memory stream
+            var stream = new MemoryStream(existingPackage.GetAsByteArray());
+
+            // Offer the file for download
+            await JsRuntime.InvokeVoidAsync("BlazorDownloadFile", fileName, Convert.ToBase64String(stream.ToArray()));
+        }
+        loading = false;
+    }
+}
+
+

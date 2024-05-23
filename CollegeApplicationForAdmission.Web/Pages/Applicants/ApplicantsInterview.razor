@@ -1,0 +1,55 @@
+﻿@inject ISnackbar Snackbar
+@inject IApplicantService ApplicantsConnect
+@inject IScheduleService SchedulesConnect
+<EditForm OnValidSubmit="Submit" Model="Applicant">
+    <MudDialog>
+        <DialogContent>
+            <DataAnnotationsValidator />
+            <MudNumericField Max="100" @bind-Value="Applicant.InterviewReading" For="@(() => Applicant.InterviewReading)" Label="Reading Comprehension" Variant="Variant.Outlined"></MudNumericField>
+            <MudNumericField Max="100" @bind-Value="Applicant.InterviewCommunication" For="@(() => Applicant.InterviewCommunication)" Label="Communication/Verbal Ability" Variant="Variant.Outlined"></MudNumericField>
+            <MudNumericField Max="100" @bind-Value="Applicant.InterviewAnalytical" For="@(() => Applicant.InterviewAnalytical)" Label="Analytical Ability" Variant="Variant.Outlined"></MudNumericField>
+
+        </DialogContent>
+        <DialogActions>
+            <LoadingButton Loading="loading" />
+            <MudButton OnClick="Cancel">Close</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+    [Parameter]
+    public Applicant Applicant { get; set; }
+    string error { get; set; } = "";
+    private bool loading;
+
+    void Cancel() => Dialog?.Cancel();
+
+    async Task Submit()
+    {
+        loading = true;
+        error = "";
+
+        try
+        {
+            if (Applicant.InterviewReading == null || Applicant.InterviewCommunication == null || Applicant.InterviewAnalytical == null)
+            {
+                throw new InvalidOperationException($"Incomplete Data");
+            }
+            Applicant.IsInterviewed = true;
+            var model = await ApplicantsConnect.UpdateAsync(Applicant);
+            StateHasChanged();
+            Snackbar.Add("Applicant's interview result has been saved", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(model));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+
+        loading = false;
+        StateHasChanged();
+    }
+}

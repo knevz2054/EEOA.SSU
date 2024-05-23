@@ -1,0 +1,176 @@
+﻿@page "/forms/{Tab?}"
+@using CollegeApplicationForAdmission.Applicants.Pages.ApplicantsInformation
+@inject IApplicantService ApplicantsConnect
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+<PageTitle>
+    SSU-SWDS | Entrance Exam Online Application
+</PageTitle>
+
+
+<br />
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-12 text-center">
+            <!-- Added text-center class -->
+            <MudText Class="mb-10" Color="Color.Warning" Typo="Typo.h6">Dont click browser's back button to avoid data loss</MudText>
+        </div>
+        <div class="col-lg-12">
+            <!-- Adjust the width of the content as needed -->
+            <MudTabs ActivePanelIndex="activeTab" ApplyEffectsToContainer="true" Elevation="1" Rounded="true" PanelClass="pa-6">
+                @if (activeTab != 4)
+                {
+                    <MudTabPanel Text="Step 1" Disabled="@IsTabDisabled(0)">
+                        <ApplicantsApplications OnApplicantCreated="OnApplicantCreated" OnSubmissionSuccess="GoToNextTab"></ApplicantsApplications>
+                    </MudTabPanel>
+                    <MudTabPanel Text="Step 2" Disabled="@IsTabDisabled(1)">
+                        <ApplicantsPersonalInformations Model="Model" OnSubmissionSuccess="GoToNextTab"></ApplicantsPersonalInformations>
+                    </MudTabPanel>
+                    <MudTabPanel Text="Step 3" Disabled="@IsTabDisabled(2)">
+                        <ApplicantsEducationalBackground Model="Model" OnSubmissionSuccess="GoToNextTab"></ApplicantsEducationalBackground>
+                    </MudTabPanel>
+                    <MudTabPanel Text="Step 4" Disabled="@IsTabDisabled(3)">
+                        <ApplicantsParentGuardianInformations Model="Model" OnSubmissionSuccess="GoToNextTab"></ApplicantsParentGuardianInformations>
+                    </MudTabPanel>
+                }
+                else
+                {
+                    <MudTabPanel Text="Receipt" Disabled="@IsTabDisabled(4)">
+                        <ApplicantsReceipt Model="Model"></ApplicantsReceipt>
+                    </MudTabPanel>
+                }
+            </MudTabs>
+        </div>
+    </div>
+</div>
+
+
+
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? Dialog { get; set; }
+    [Parameter]
+    public string? Tab { get; set; }
+    int activeTab = 0;
+    bool loading = false;
+    string error = "";
+    private string? currentTab;
+    Applicant? Model;
+
+    protected override void OnInitialized()
+    {
+        // currentTab = Tab ?? GetTabName(activeTab);
+        // base.OnInitialized();
+        currentTab = Tab ?? GetTabName(activeTab);
+        if (!IsValidNavigation(currentTab))
+        {
+            Navigation.NavigateTo("/notfound");
+        }
+        base.OnInitialized();
+    }
+
+    private bool IsValidNavigation(string? tab)
+    {
+        // Check if the provided tab name is valid
+
+        switch (tab)
+        {
+            case "forms":
+                // Allow direct access to the "forms" page
+                return true;
+            case "personalinformation" when activeTab == 1:
+                // Allow access to personal information only if the current tab is "forms"
+                return true;
+            case "academicbackground" when activeTab == 2:
+            case "familybackground" when activeTab == 3:
+            case "receipt" when activeTab == 4:
+                // Allow access if navigating to the next sequential tab
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Disable browser back button
+            DisableBackButton();
+        }
+    }
+
+    private void DisableBackButton()
+    {
+        // Disable browser back button
+        JSRuntime.InvokeVoidAsync("disableBackButton");
+    }
+
+    // Method to handle back button click event
+    [JSInvokable]
+    public async Task HandleBackButtonClick()
+    {
+        // Perform custom action, e.g., navigate to another URL
+        // Here, I'm navigating to a different page
+        Navigation.NavigateTo("/notfound");
+    }
+
+    public void Dispose()
+    {
+        // Re-enable browser back button when component is disposed
+        JSRuntime.InvokeVoidAsync("enableBackButton");
+    }
+
+    protected override void OnParametersSet()
+    {
+        activeTab = Tab switch { "personalinformation" => 1, "academicbackground" => 2, "familybackground" => 3, "receipt" => 4, _ => 0 };
+    }
+
+    bool IsTabDisabled(int tabIndex) => tabIndex != activeTab;
+
+    void GoToNextTab()
+    {
+        // if (activeTab < 4)
+        // {
+        //     activeTab++;
+        //     string nextTabName = GetTabName(activeTab);
+        //     string nextTabUrl = $"/forms/{nextTabName}";
+        //     Navigation.NavigateTo(nextTabUrl);
+        // }
+        if (activeTab < 4)
+        {
+            activeTab++;
+            string nextTabName = GetTabName(activeTab);
+            if (IsValidNavigation(nextTabName))
+            {
+                string nextTabUrl = $"/forms/{nextTabName}";
+                Navigation.NavigateTo(nextTabUrl);
+            }
+            else
+            {
+                Navigation.NavigateTo("/notfound");
+            }
+        }
+    }
+
+    string GetTabName(int tabIndex) =>
+        tabIndex switch
+        {
+            1 => "personalinformation",
+            2 => "academicbackground",
+            3 => "familybackground",
+            4 => "receipt",
+            _ => "forms"
+        };
+
+    async Task OnApplicantCreated(Applicant applicant)
+    {
+        // Receive the created ApplicantModel from the child component
+        Model = applicant;
+    }
+
+
+}

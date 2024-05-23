@@ -1,0 +1,150 @@
+﻿@page "/schedules/{Id}/applicants"
+@attribute [Authorize]
+@inject IScheduleService SchedulesConnect
+@inject IApplicantService ApplicantsConnect
+@inject IDialogService Dialog
+@inject NavigationManager Navigation
+
+@if (Model != null)
+{
+    if (loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    }
+    <MudToolBar DisableGutters="true" WrapContent="true">
+        <MudSpacer />
+        <MudButton Href="/schedules" StartIcon="@Icons.Material.Filled.ChevronLeft" Variant="Variant.Outlined" Size="Size.Small">
+            <MudText Color="Color.Default">Schedules</MudText>
+        </MudButton>
+    </MudToolBar>
+    <MudTable SortLabel="Sort By" Items="@Model.Applicants.Where(ma => ma.IsCompleted).OrderBy(ma => ma.PersonalInformation.LastName)" FixedHeader="@fixed_header" Height="@(fixed_header ? "400px" :"")">
+        <HeaderContent>         
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<Applicant, object>(x => x.PersonalInformation.LastName)">
+                    <MudText Typo="Typo.caption">Applicant's Name</MudText>
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<Applicant, object>(x => x.CourseName)">
+                    <MudText Typo="Typo.caption">Program Preference</MudText>
+                </MudTableSortLabel>
+            </MudTh>           
+            <MudTh>
+                <MudText Typo="Typo.caption">Exam</MudText>
+            </MudTh>
+            <MudTh>
+                <MudText Typo="Typo.caption">Interview</MudText>
+            </MudTh>            
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Applicant Name">
+                <MudLink Href="@($"/applicants/{context.Id}")">
+                    <MudText Typo="Typo.caption">
+                        @($"{context.PersonalInformation.LastName}, {context.PersonalInformation.FirstName} {context.PersonalInformation.MiddleName.Substring(0, 1)}.")
+                    </MudText>
+                </MudLink>
+            </MudTd>
+            <MudTd DataLabel="Program Preference">
+                <MudText Typo="Typo.caption">@context.CourseName</MudText>
+            </MudTd>            
+            <MudTd DataLabel="Exam">
+                @if (context.IsExamined == false)
+                {
+                    <MudButton OnClick="() => OnExamResultClick(context.Id, context.ScheduleId)" StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Info" Class="ms-1" Size="Size.Small">
+                        <MudText Typo="Typo.caption" Color="Color.Info">Exam</MudText>
+                    </MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption">Done</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Interview">
+                @if (context.IsInterviewed == false)
+                {
+                    <MudButton OnClick="() => OnInterviewResultClick(context.Id, context.ScheduleId)" StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined" Color="Color.Info" Class="ms-1" Size="Size.Small">
+                        <MudText Typo="Typo.caption" Color="Color.Info">Interview</MudText>
+                    </MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption">Done</MudText>
+                }
+            </MudTd>          
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[]{50, 100}" />
+        </PagerContent>
+    </MudTable>
+    <MudSwitch @bind-Value="@fixed_header">Fixed Header</MudSwitch>
+}
+
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+    bool fixed_header = true;
+    bool loading = false;
+    Schedule? Model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        Model = Id == null ? null : await SchedulesConnect.GetAsync(Guid.Parse(Id));
+        loading = false;
+    }
+ 
+    async Task OnExamResultClick(Guid AppId, Guid SchId)
+    {
+
+        Applicant Applicant = await ApplicantsConnect.GetAsync(AppId);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(ApplicantsExamination.Applicant), Applicant);
+        var dialog = await Dialog.ShowAsync<ApplicantsExamination>("Examination Result", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Update the Applicant object in the Model.Applicants collection
+            var existingApplicant = Model.Applicants.FirstOrDefault(a => a.Id == AppId);
+            if (existingApplicant != null)
+            {
+                Model.Applicants.Remove(existingApplicant);
+                Model.Applicants.Add(Applicant);
+            }
+
+            // Reload the schedule to reflect changes in the UI
+            Model = await SchedulesConnect.GetAsync(SchId);
+        }      
+
+        loading = false;
+        StateHasChanged();
+    }
+
+    async Task OnInterviewResultClick(Guid AppId, Guid SchId)
+    {
+
+        Applicant Applicant = await ApplicantsConnect.GetAsync(AppId);
+        var parameters = new DialogParameters();
+        parameters.Add(nameof(ApplicantsInterview.Applicant), Applicant);
+        var dialog = await Dialog.ShowAsync<ApplicantsInterview>("Interview Result", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Update the Applicant object in the Model.Applicants collection
+            var existingApplicant = Model.Applicants.FirstOrDefault(a => a.Id == AppId);
+            if (existingApplicant != null)
+            {
+                Model.Applicants.Remove(existingApplicant);
+                Model.Applicants.Add(Applicant);
+            }
+
+            // Reload the schedule to reflect changes in the UI
+            Model = await SchedulesConnect.GetAsync(SchId);
+        }
+
+        loading = false;
+        StateHasChanged();
+    }
+}
