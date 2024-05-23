@@ -11,7 +11,17 @@
 # Note: This is only used by command line
 ###############################################################################
 #*.cs     diff=csharp
+# Treat C# files as C#
+*.cs linguist-language=C#
 
+# Treat Razor files as Blazor
+*.razor linguist-language=Blazor
+
+# Treat other related files accordingly
+*.cshtml linguist-language=HTML
+*.html linguist-language=HTML
+*.css linguist-language=CSS
+*.js linguist-language=JavaScript
 ###############################################################################
 # Set the merge driver for project and solution files
 #
